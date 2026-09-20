@@ -11,7 +11,7 @@
 - [Custom Claims and Profile Rules](#custom-claims-and-profile-rules)
 - [Security and Persistence](#security-and-persistence)
 - [Error Patterns](#error-patterns)
-- [How-To](#how-to)
+- [How-To (Operational Runbooks)](docs/how-to/README.md)
 
 ## Overview
 Enhauthserv is a Spring Authorization Server based OAuth 2.1 and OpenID Connect provider with custom extensions for:

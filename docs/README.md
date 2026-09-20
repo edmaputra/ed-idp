@@ -14,6 +14,15 @@ docs/
 ├── architecture/                  # Architectural principles, module graphs & filter chains
 │   └── 00-architecture.md         # System design, Modulith slices, security chains & sequences
 │
+├── how-to/                        # Task-oriented operational runbooks (by objective)
+│   ├── README.md                  # Index of operational guides
+│   ├── 01-tenant-onboarding.md
+│   ├── 02-m2m-client-credentials.md
+│   ├── 03-spa-pkce-login.md
+│   ├── 04-user-profiles-and-dynamic-claims.md
+│   ├── 05-resource-server-token-validation.md
+│   └── 06-database-and-production-setup.md
+│
 ├── features/                      # Deep-dive feature specifications & API contracts
 │   ├── 01-oauth2-authorization-server.md
 │   ├── 02-openid-connect.md
@@ -50,7 +59,21 @@ docs/
 |---|---|
 | [Features & Roadmap](features-and-roadmap.md) | Executive summary of current capabilities and the 6-phase product roadmap |
 | [Architecture & System Design](architecture/00-architecture.md) | Modulith package slices, security filter ordering, and request lifecycle sequence diagrams |
+| [How-To Operational Guides](how-to/README.md) | Task-oriented recipes for tenant onboarding, client registration, claims, and deployment |
 | [Roadmap Backlog](roadmap/README.md) | Thematic breakdown of planned enterprise IdP capabilities |
+
+---
+
+## How-To Guides (Operational Runbooks)
+
+| Objective | Guide | Audience |
+|---|---|---|
+| Onboard a new tenant | [how-to/01-tenant-onboarding.md](how-to/01-tenant-onboarding.md) | Tenant / Identity Admins |
+| Register a backend service (M2M) | [how-to/02-m2m-client-credentials.md](how-to/02-m2m-client-credentials.md) | Backend / API Developers |
+| Integrate an SPA / Mobile App with PKCE | [how-to/03-spa-pkce-login.md](how-to/03-spa-pkce-login.md) | Frontend / Mobile Developers |
+| Provision users & dynamic claims | [how-to/04-user-profiles-and-dynamic-claims.md](how-to/04-user-profiles-and-dynamic-claims.md) | Identity Admins |
+| Validate / revoke tokens in Resource Servers | [how-to/05-resource-server-token-validation.md](how-to/05-resource-server-token-validation.md) | Backend / Gateway Engineers |
+| Deploy with PostgreSQL & secure Ingress | [how-to/06-database-and-production-setup.md](how-to/06-database-and-production-setup.md) | DevOps / SREs |
 
 ---
 

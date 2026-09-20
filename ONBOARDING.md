@@ -154,6 +154,7 @@ Review the strategic roadmap to understand future development directions:
 |---|---|
 | Documentation Portal | [docs/README.md](docs/README.md) |
 | Architecture & System Design | [docs/architecture/00-architecture.md](docs/architecture/00-architecture.md) |
+| How-To Operational Guides | [docs/how-to/](docs/how-to/) |
 | Features & Phased Roadmap | [docs/features-and-roadmap.md](docs/features-and-roadmap.md) |
 | Feature Specifications | [docs/features/](docs/features/) |
 | Roadmap Backlog | [docs/roadmap/](docs/roadmap/) |
