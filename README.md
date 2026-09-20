@@ -2,6 +2,9 @@
 
 ## Contents
 - [Overview](#overview)
+- [Documentation Portal](docs/README.md)
+- [Features & Roadmap](docs/features-and-roadmap.md)
+- [Architecture & System Design](docs/architecture/00-architecture.md)
 - [Built-in Clients and User](#built-in-clients-and-user)
 - [Standards and Endpoints](#standards-and-endpoints)
 - [Token Lifetime and Policy Controls](#token-lifetime-and-policy-controls)

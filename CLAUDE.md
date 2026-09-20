@@ -15,24 +15,25 @@ H2 console available at `http://localhost:9000/h2-console` (JDBC URL: `jdbc:h2:m
 
 ## Architecture
 
-**Hexagonal (Ports & Adapters)** architecture enforced by ArchUnit (`ArchitectureBoundariesTests`):
+**Vertical-Slice Modular Monolith** enforced by Spring Modulith package annotations (`@ApplicationModule` in `package-info.java`):
 
-| Layer | Package | Constraint |
-|---|---|---|
-| Domain | `domain/` | No frameworks — pure Java |
-| Application | `application/usecase/`, `application/port/` | No Spring, JPA, or servlet code |
-| Input Adapters | `adapter/in/http/`, `adapter/in/filter/` | HTTP controllers, tenant filter |
-| Output Adapters | `adapter/out/` | Persistence, security, tenant, token implementations |
-| Config | `config/` | Spring beans; wires ports to adapters |
-| Entity/Repository | `entity/`, `repository/` | JPA entities and Spring Data repos (separate from domain) |
-
-**Use-case wiring:** All use cases are wired in `UseCaseWiringConfig`. Use cases implement input ports; adapters implement output ports. Controllers must never call repositories or entities directly — only through input port interfaces.
+| Module | Package | Responsibility | Allowed Dependencies |
+|---|---|---|---|
+| `tenancy` | `tenancy/` | Tenant resolution, `TenantContext`, dynamic issuer | None |
+| `users` | `users/` | User profiles, dynamic attributes, JPA repositories | None |
+| `shared` | `shared/` | Cross-cutting endpoints (`/logged-out`) | None |
+| `oauth` | `oauth/` | Spring Security chains, OIDC metadata, JWKs, tenant JDBC repos | `tenancy`, `shared` |
+| `clients` | `clients/` | Client bootstrap, auth, scope checks | `tenancy`, `oauth` |
+| `authorization` | `authorization/` | Scope validation & authorization policies | `clients` |
+| `consent` | `consent/` | User consent checks & approval flow | `tenancy`, `oauth` |
+| `claims` | `claims/` | Dynamic claim assembly & inclusion rules | `users`, `tenancy` |
+| `tokens` | `tokens/` | Token policy, introspection (RFC 7662), revocation (RFC 7009) | `authorization`, `clients`, `tenancy`, `oauth` |
 
 ## Key Domain Concepts
 
-- **Multi-tenancy**: Tenant resolved per-request via `TenantContextFilter` → `TenantContext` (thread-local). Resolution order: HTTP header (`X-Tenant-ID`) → path prefix (`/t/{tenant}/`). Controlled by `tenant.resolution.*` properties.
-- **Token policy**: Configurable via `app.token.*` (access TTL, refresh TTL, rotation). Properties class: `TokenPolicyProperties`.
-- **Dynamic claims**: `UserClaimsUseCase` assembles OIDC claims from `UserProfile` + `UserProfileAttribute` + `ClaimInclusionRule`. Claims route to `USERINFO`, `ID_TOKEN`, or `ACCESS_TOKEN` per `ClaimTarget`.
+- **Multi-tenancy**: Tenant resolved per-request via `TenantContextFilter` (highest precedence filter) → `TenantContext` (thread-local). Resolution order: HTTP header (`X-Tenant-ID`) → path prefix (`/t/{tenant}/`). Controlled by `tenant.resolution.*` properties. Dynamic issuer resolved by `TenantIssuerService`.
+- **Token policy**: Configurable via `app.token.*` (access TTL, refresh TTL, rotation, client credentials allowed scopes). Properties class: `TokenPolicyProperties`.
+- **Dynamic claims**: `UserClaimsService` assembles OIDC claims from `UserProfile` + `UserProfileAttribute` + `ClaimInclusionRule`. Claims route to `USERINFO`, `ID_TOKEN`, or `ACCESS_TOKEN` per `ClaimTarget`, guarded against reserved JWT claims.
 - **Tenant-aware OAuth2 services**: `TenantAwareOAuth2AuthorizationService`, `TenantAwareOAuth2AuthorizationConsentService`, `TenantAwareRegisteredClientRepository` scope all OAuth2 state per tenant.
 
 ## Endpoints
