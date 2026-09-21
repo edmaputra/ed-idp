@@ -4,6 +4,12 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Evaluates request URI path segments and header data to identify the target tenant.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 public class ResolveTenantService {
 
   private static final Pattern TENANT_ID_PATTERN = Pattern.compile("^[A-Za-z0-9_-]+$");

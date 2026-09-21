@@ -15,9 +15,18 @@ import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * Servlet filter responsible for resolving tenant context from incoming requests
+ * (via HTTP headers or URL path) and binding it to Java 25 {@link TenantContext}
+ * and SLF4J {@link MDC} for downstream execution.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Component
 public class TenantContextFilter extends OncePerRequestFilter {
 
@@ -79,8 +88,10 @@ public class TenantContextFilter extends OncePerRequestFilter {
         : request;
 
     if (resolution.tenantId().isPresent()) {
+      String tenantId = resolution.tenantId().get();
+      MDC.put("tenantId", tenantId);
       try {
-        TenantContext.callWithTenant(resolution.tenantId().get(), () -> {
+        TenantContext.callWithTenant(tenantId, () -> {
           filterChain.doFilter(requestToUse, response);
           return null;
         });
@@ -88,6 +99,8 @@ public class TenantContextFilter extends OncePerRequestFilter {
         throw e;
       } catch (Exception e) {
         throw new ServletException(e);
+      } finally {
+        MDC.remove("tenantId");
       }
     } else {
       filterChain.doFilter(requestToUse, response);

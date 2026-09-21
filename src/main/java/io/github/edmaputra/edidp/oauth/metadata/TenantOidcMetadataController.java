@@ -10,6 +10,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller providing per-tenant OpenID Connect Discovery metadata documents.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @RestController
 public class TenantOidcMetadataController {
 

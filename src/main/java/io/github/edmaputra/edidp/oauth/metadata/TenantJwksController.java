@@ -14,6 +14,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller serving per-tenant JSON Web Key Sets (JWKS).
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @RestController
 public class TenantJwksController {
 

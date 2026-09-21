@@ -2,6 +2,16 @@ package io.github.edmaputra.edidp.tenancy;
 
 import java.util.Optional;
 
+/**
+ * Encapsulates the outcome of a tenant resolution evaluation against an incoming request.
+ *
+ * @param tenantId       optional resolved tenant identifier
+ * @param rewrittenPath  optional rewritten path for downstream dispatch
+ * @param invalidRequest whether the resolution outcome marks the request as invalid
+ * @param tenantSource   the origin source through which the tenant was identified
+ * @author edmaputra
+ * @since 0.0.1
+ */
 public record TenantResolutionResult(
     Optional<String> tenantId,
     Optional<String> rewrittenPath,

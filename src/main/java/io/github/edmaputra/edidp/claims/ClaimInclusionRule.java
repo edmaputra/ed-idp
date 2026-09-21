@@ -12,6 +12,12 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * JPA entity defining target projection rules for dynamic user claims.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Entity
 @Table(name = "claim_inclusion_rules")
 @Getter

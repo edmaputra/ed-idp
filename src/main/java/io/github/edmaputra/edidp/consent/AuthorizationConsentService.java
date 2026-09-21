@@ -3,6 +3,12 @@ package io.github.edmaputra.edidp.consent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service orchestrating OAuth 2.1 user consent evaluations and persistence.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Service
 @RequiredArgsConstructor
 public class AuthorizationConsentService {

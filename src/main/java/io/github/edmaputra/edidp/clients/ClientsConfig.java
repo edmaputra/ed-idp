@@ -5,6 +5,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 
+/**
+ * Spring configuration for client management and seed data initialization.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Configuration
 public class ClientsConfig {
 

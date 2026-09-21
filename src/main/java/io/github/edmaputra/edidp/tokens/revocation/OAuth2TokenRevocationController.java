@@ -14,10 +14,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST Controller for RFC 7009 OAuth 2.0 Token Revocation.
- *
+ * <p>
  * Endpoint: POST /oauth2/revoke
  * Authentication: HTTP Basic Auth (client_id:client_secret)
  * Request Parameters: token (required), token_type_hint (optional)
+ *
+ * @author edmaputra
+ * @since 0.0.1
  */
 @RestController
 @RequestMapping({"/oauth2/revoke", "/t/{tenant}/oauth2/revoke"})

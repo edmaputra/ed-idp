@@ -16,11 +16,14 @@ import java.util.Map;
 
 /**
  * REST Controller for RFC 7662 OAuth 2.0 Token Introspection.
- *
+ * <p>
  * Endpoint: POST /oauth2/introspect
  * Authentication: HTTP Basic Auth (client_id:client_secret)
  * Request Parameters: token (required)
  * Response: JSON with RFC 7662 fields (active, scope, client_id, etc.)
+ *
+ * @author edmaputra
+ * @since 0.0.1
  */
 @RestController
 @RequestMapping({"/oauth2/introspect", "/t/{tenant}/oauth2/introspect"})

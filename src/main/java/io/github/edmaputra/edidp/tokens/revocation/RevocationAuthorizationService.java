@@ -3,6 +3,12 @@ package io.github.edmaputra.edidp.tokens.revocation;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service evaluating whether a client possesses authority to revoke tokens.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Service
 public class RevocationAuthorizationService {
 

@@ -8,6 +8,12 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 
+/**
+ * Tenant-scoped JDBC authorization service scoping OAuth2 authorizations per tenant.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 public class TenantAwareOAuth2AuthorizationService extends JdbcOAuth2AuthorizationService {
 
   private static final String DEFAULT_TENANT = "demo";

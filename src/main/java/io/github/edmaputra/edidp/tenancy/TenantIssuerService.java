@@ -3,6 +3,12 @@ package io.github.edmaputra.edidp.tenancy;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for dynamically constructing per-tenant OpenID Connect and OAuth 2.1 issuer URLs.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Service
 public class TenantIssuerService {
 

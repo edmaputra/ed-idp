@@ -11,6 +11,12 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Service coordinating client authentication, scope validation, and token introspection logic.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Service
 @RequiredArgsConstructor
 public class IntrospectTokenService {

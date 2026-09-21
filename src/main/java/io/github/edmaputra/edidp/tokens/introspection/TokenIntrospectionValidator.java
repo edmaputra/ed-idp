@@ -14,12 +14,15 @@ import java.util.Map;
 
 /**
  * Service for validating tokens and formatting RFC 7662 token introspection responses.
- *
+ * <p>
  * This service:
  * - Validates JWT token signatures and expiration
  * - Extracts token claims (scope, client_id, subject, etc.)
  * - Formats responses according to RFC 7662 specification
  * - Handles both valid and invalid tokens gracefully
+ *
+ * @author edmaputra
+ * @since 0.0.1
  */
 @Service
 @RequiredArgsConstructor

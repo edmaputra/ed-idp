@@ -11,6 +11,12 @@ import org.springframework.security.oauth2.server.authorization.settings.ClientS
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Service;
 
+/**
+ * Bootstraps initial demo OAuth 2.1 client registrations into the repository.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Service
 @RequiredArgsConstructor
 public class ClientBootstrapService {

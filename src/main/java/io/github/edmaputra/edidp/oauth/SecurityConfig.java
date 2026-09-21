@@ -65,6 +65,13 @@ import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
+/**
+ * Core security configuration establishing multi-tier filter chains, OAuth 2.1 protocol endpoints,
+ * token customization, and tenant-aware repository bindings.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Configuration
 @EnableWebSecurity
 @EnableConfigurationProperties(TokenPolicyProperties.class)

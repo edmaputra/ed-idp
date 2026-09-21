@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# AI Agent runtime artifacts
+project-structure.json
+.project-structure.json
+.agents/project-structure.json
+

@@ -6,6 +6,12 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.stereotype.Component;
 
+/**
+ * Component executing token invalidation operations against the authorization store.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Component
 @RequiredArgsConstructor
 public class TokenRevoker {

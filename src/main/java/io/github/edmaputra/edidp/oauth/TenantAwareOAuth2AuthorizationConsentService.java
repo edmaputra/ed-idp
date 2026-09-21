@@ -6,6 +6,12 @@ import org.springframework.security.oauth2.server.authorization.JdbcOAuth2Author
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsent;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 
+/**
+ * Tenant-scoped JDBC authorization consent service ensuring consent state is isolated per tenant.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 public class TenantAwareOAuth2AuthorizationConsentService extends JdbcOAuth2AuthorizationConsentService {
 
   private static final String DEFAULT_TENANT = "demo";

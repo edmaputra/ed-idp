@@ -5,6 +5,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 
+/**
+ * Spring configuration providing {@link TokenSettings} beans configured by {@link TokenPolicyProperties}.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Configuration
 @EnableConfigurationProperties(TokenPolicyProperties.class)
 public class TokensConfig {

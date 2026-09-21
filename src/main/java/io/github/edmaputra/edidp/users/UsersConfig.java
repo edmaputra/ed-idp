@@ -10,6 +10,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 
+/**
+ * Spring configuration for seeding demo users, profiles, and attributes.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Configuration
 public class UsersConfig {
 
