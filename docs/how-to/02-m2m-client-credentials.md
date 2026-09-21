@@ -9,7 +9,7 @@ This guide walks through registering and authenticating a backend daemon or micr
 The Client Credentials flow is intended for machine-to-machine (M2M) communication where no user is present.
 - The client authenticates directly with its `client_id` and `client_secret`.
 - Spring Authorization Server validates credentials and returns a signed JWT access token.
-- EnhAuthServ enforces a **Scope Whitelist Guard** (`app.token.client-credentials-allowed-scopes`) to prevent automated clients from requesting user-level privileges.
+- ed-idp enforces a **Scope Whitelist Guard** (`app.token.client-credentials-allowed-scopes`) to prevent automated clients from requesting user-level privileges.
 
 ---
 
@@ -68,7 +68,7 @@ INSERT INTO oauth2_registered_client (
 
 ## Step 3: Verify Scope Guard Configuration
 
-By default, EnhAuthServ only permits M2M clients to request scopes listed in `app.token.client-credentials-allowed-scopes` (defined in `application.properties`):
+By default, ed-idp only permits M2M clients to request scopes listed in `app.token.client-credentials-allowed-scopes` (defined in `application.properties`):
 
 ```properties
 app.token.client-credentials-allowed-scopes=read,write,introspection,revocation

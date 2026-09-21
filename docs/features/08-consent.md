@@ -1,6 +1,6 @@
 # Feature 8 — User Consent
 
-During the authorization code flow, when a client requests scopes the user has not yet approved, EnhAuthServ presents a consent screen and records the decision.
+During the authorization code flow, when a client requests scopes the user has not yet approved, ed-idp presents a consent screen and records the decision.
 
 ## Endpoints
 
@@ -61,8 +61,8 @@ Consent records are stored in `oauth2_authorization_consent` and, like all OAuth
 
 | Concern | Class / file |
 |---|---|
-| Controller | [`consent/OAuth2AuthorizationConsentController`](../../src/main/java/io/github/edmaputra/enhauthserv/consent/OAuth2AuthorizationConsentController.java) |
-| Service | [`consent/AuthorizationConsentService`](../../src/main/java/io/github/edmaputra/enhauthserv/consent/AuthorizationConsentService.java) (+ `CheckConsentCommand`, `ConsentDecisionResult`) |
+| Controller | [`consent/OAuth2AuthorizationConsentController`](../../src/main/java/io/github/edmaputra/edidp/consent/OAuth2AuthorizationConsentController.java) |
+| Service | [`consent/AuthorizationConsentService`](../../src/main/java/io/github/edmaputra/edidp/consent/AuthorizationConsentService.java) (+ `CheckConsentCommand`, `ConsentDecisionResult`) |
 | Storage | `consent/ConsentStore` |
 | Consent store | `oauth/TenantAwareOAuth2AuthorizationConsentService` (tenant-scoped) |
 | Client lookup | `RegisteredClientRepository` (for client name on the form) |

@@ -1,6 +1,6 @@
 # How-To Guides (Operational Runbooks)
 
-This section provides task-oriented, step-by-step operational runbooks for developing with and administering **EnhAuthServ (`ed-auth`)**. Each guide addresses a specific objective from start to finish.
+This section provides task-oriented, step-by-step operational runbooks for developing with and administering **ed-idp**. Each guide addresses a specific objective from start to finish.
 
 ---
 

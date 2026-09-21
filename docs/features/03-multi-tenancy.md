@@ -56,9 +56,9 @@ Migration `V0_0_1_007` adds a `tenant_id` discriminator (default `demo`) to `oau
 | Concern | Class / file |
 |---|---|
 | Filter registration | `oauth/SecurityConfig.tenantContextFilterRegistration(...)` (`HIGHEST_PRECEDENCE`, URL `/*`) |
-| Request filter | [`tenancy/TenantContextFilter`](../../src/main/java/io/github/edmaputra/enhauthserv/tenancy/TenantContextFilter.java) |
-| Resolution logic | [`tenancy/ResolveTenantService`](../../src/main/java/io/github/edmaputra/enhauthserv/tenancy/ResolveTenantService.java) + `TenantResolutionPolicy`, `TenantResolutionResult` |
-| Scoped value | [`tenancy/TenantContext`](../../src/main/java/io/github/edmaputra/enhauthserv/tenancy/TenantContext.java) |
+| Request filter | [`tenancy/TenantContextFilter`](../../src/main/java/io/github/edmaputra/edidp/tenancy/TenantContextFilter.java) |
+| Resolution logic | [`tenancy/ResolveTenantService`](../../src/main/java/io/github/edmaputra/edidp/tenancy/ResolveTenantService.java) + `TenantResolutionPolicy`, `TenantResolutionResult` |
+| Scoped value | [`tenancy/TenantContext`](../../src/main/java/io/github/edmaputra/edidp/tenancy/TenantContext.java) |
 | Service access | `claims/UserClaimsService` reads `TenantContext` directly |
 | Tenant-aware stores | `oauth/TenantAwareRegisteredClientRepository`, `TenantAwareOAuth2AuthorizationService`, `TenantAwareOAuth2AuthorizationConsentService` |
 | Issuer | `tenancy/TenantIssuerService` |

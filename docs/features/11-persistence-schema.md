@@ -39,8 +39,8 @@ State is persisted via Spring Data JPA and Spring Security's JDBC OAuth2 stores.
 Override the datasource (example PostgreSQL):
 
 ```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/enhauth
-spring.datasource.username=enhauth
+spring.datasource.url=jdbc:postgresql://localhost:5432/ed_idp
+spring.datasource.username=ed_idp
 spring.datasource.password=secret
 spring.datasource.driver-class-name=org.postgresql.Driver
 ```

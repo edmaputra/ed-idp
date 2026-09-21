@@ -51,8 +51,8 @@ A client may only revoke tokens it owns; revocation is scoped to the authenticat
 
 | Concern | Class / file |
 |---|---|
-| Controller | [`tokens/revocation/OAuth2TokenRevocationController`](../../src/main/java/io/github/edmaputra/enhauthserv/tokens/revocation/OAuth2TokenRevocationController.java) |
-| Service | [`tokens/revocation/RevokeTokenService`](../../src/main/java/io/github/edmaputra/enhauthserv/tokens/revocation/RevokeTokenService.java) (+ `RevokeTokenCommand`, `RevokeTokenResult`) |
+| Controller | [`tokens/revocation/OAuth2TokenRevocationController`](../../src/main/java/io/github/edmaputra/edidp/tokens/revocation/OAuth2TokenRevocationController.java) |
+| Service | [`tokens/revocation/RevokeTokenService`](../../src/main/java/io/github/edmaputra/edidp/tokens/revocation/RevokeTokenService.java) (+ `RevokeTokenCommand`, `RevokeTokenResult`) |
 | Client auth | `clients/ClientAuthenticationService` |
 | Scope policy | `tokens/revocation/RevocationAuthorizationService` |
 | Revocation | `tokens/revocation/TokenRevoker` |

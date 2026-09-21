@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>io.github.edmaputra</groupId>
-	<artifactId>enhauthserv</artifactId>
+	<artifactId>ed-idp</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
+	<name>ed-idp</name>
+	<description>ed-idp - Multi-tenant OAuth 2.1 and OpenID Connect Identity Provider</description>
 	<url/>
 	<licenses>
 		<license/>

@@ -1,6 +1,6 @@
 # How-To: Database Setup & Production Hardening
 
-This guide covers preparing, deploying, and hardening **EnhAuthServ (`ed-auth`)** for production environments.
+This guide covers preparing, deploying, and hardening **ed-idp** for production environments.
 
 ---
 
@@ -13,8 +13,8 @@ While the default runtime uses an in-memory H2 database, production requires a d
 1. Add the PostgreSQL driver dependency if running in custom packaging, or supply it to the runtime classpath.
 2. Configure `application.properties` (or environment variables):
    ```properties
-   spring.datasource.url=jdbc:postgresql://postgres-host:5432/enhauth_db
-   spring.datasource.username=enhauth_user
+   spring.datasource.url=jdbc:postgresql://postgres-host:5432/ed_idp_db
+   spring.datasource.username=ed_idp_user
    spring.datasource.password=${DB_PASSWORD}
    spring.datasource.driver-class-name=org.postgresql.Driver
 
@@ -29,8 +29,8 @@ While the default runtime uses an in-memory H2 database, production requires a d
 ### Option B: MySQL Setup
 
 ```properties
-spring.datasource.url=jdbc:mysql://mysql-host:3306/enhauth_db?preserveInstants=true&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
-spring.datasource.username=enhauth_user
+spring.datasource.url=jdbc:mysql://mysql-host:3306/ed_idp_db?preserveInstants=true&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+spring.datasource.username=ed_idp_user
 spring.datasource.password=${DB_PASSWORD}
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 
@@ -99,7 +99,7 @@ tenant.resolution.require-explicit-tenant=true
 
 ## 4. Health Checks & Kubernetes Probes
 
-EnhAuthServ includes `spring-boot-starter-actuator` for production observability.
+ed-idp includes `spring-boot-starter-actuator` for production observability.
 
 ### Configure Probes in `application.properties`:
 ```properties
@@ -138,7 +138,7 @@ logging.level.org.springframework.security=INFO
 logging.level.org.springframework.security.oauth2=INFO
 
 # Enable DEBUG only temporarily when troubleshooting specific flow failures
-# logging.level.io.github.edmaputra.enhauthserv=DEBUG
+# logging.level.io.github.edmaputra.edidp=DEBUG
 ```
 
 ---

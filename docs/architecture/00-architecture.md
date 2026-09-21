@@ -1,6 +1,6 @@
 # Architecture & System Design
 
-EnhAuthServ (`ed-auth`) is built as a **Vertical-Slice Modular Monolith** on **Java 25**, **Spring Boot 4.1.1**, **Spring Authorization Server**, and **Spring Modulith**. It functions as an enterprise-grade multi-tenant Identity Provider (IdP) and Authorization Server issuing OAuth 2.1 and OpenID Connect 1.0 tokens.
+ed-idp is built as a **Vertical-Slice Modular Monolith** on **Java 25**, **Spring Boot 4.1.1**, **Spring Authorization Server**, and **Spring Modulith**. It functions as an enterprise-grade multi-tenant Identity Provider (IdP) and Authorization Server issuing OAuth 2.1 and OpenID Connect 1.0 tokens.
 
 ---
 
@@ -63,15 +63,15 @@ flowchart TD
 
 | Module Package | Responsibilities | Allowed Dependencies | Key Classes |
 |---|---|---|---|
-| [`tenancy/`](file:///home/edmaputra/.gemini/antigravity/worktrees/ed-auth/create_roadmap_and_features/src/main/java/io/github/edmaputra/enhauthserv/tenancy) | Request tenant resolution, thread-local context management, per-tenant dynamic issuer URLs. | *None* (Foundation) | `TenantContextFilter`, `ResolveTenantService`, `TenantContext`, `TenantIssuerService` |
-| [`users/`](file:///home/edmaputra/.gemini/antigravity/worktrees/ed-auth/create_roadmap_and_features/src/main/java/io/github/edmaputra/enhauthserv/users) | User profile entities, custom dynamic attributes, persistence repositories. | *None* (Foundation) | `UserProfile`, `UserProfileAttribute`, `UserProfileRepository`, `UserProfileAttributeRepository` |
-| [`shared/`](file:///home/edmaputra/.gemini/antigravity/worktrees/ed-auth/create_roadmap_and_features/src/main/java/io/github/edmaputra/enhauthserv/shared) | Cross-cutting endpoints and shared web resources. | *None* (Foundation) | `LoggedOutController` |
-| [`oauth/`](file:///home/edmaputra/.gemini/antigravity/worktrees/ed-auth/create_roadmap_and_features/src/main/java/io/github/edmaputra/enhauthserv/oauth) | Security filter chains, OIDC metadata/JWKS endpoints, tenant-aware JDBC repository adapters. | `tenancy`, `shared` | `SecurityConfig`, `TenantOidcMetadataController`, `TenantJwksController`, `TenantAware*` repositories |
-| [`clients/`](file:///home/edmaputra/.gemini/antigravity/worktrees/ed-auth/create_roadmap_and_features/src/main/java/io/github/edmaputra/enhauthserv/clients) | Client registration bootstrap, client credential authentication, scope verification. | `tenancy`, `oauth` | `ClientBootstrapService`, `ClientAuthenticationService`, `ClientScopeService` |
-| [`authorization/`](file:///home/edmaputra/.gemini/antigravity/worktrees/ed-auth/create_roadmap_and_features/src/main/java/io/github/edmaputra/enhauthserv/authorization) | Scope validation rules and authorization policy evaluations. | `clients` | `AuthorizationPolicyService`, `ValidateScopeCommand` |
-| [`consent/`](file:///home/edmaputra/.gemini/antigravity/worktrees/ed-auth/create_roadmap_and_features/src/main/java/io/github/edmaputra/enhauthserv/consent) | Interactive consent review, user scope approval flow, consent persistence. | `tenancy`, `oauth` | `AuthorizationConsentService`, `ConsentStore`, `OAuth2AuthorizationConsentController` |
-| [`claims/`](file:///home/edmaputra/.gemini/antigravity/worktrees/ed-auth/create_roadmap_and_features/src/main/java/io/github/edmaputra/enhauthserv/claims) | Dynamic claim filtering and assembly across UserInfo, ID Tokens, and Access Tokens. | `users`, `tenancy` | `UserClaimsService`, `UserClaimsDataProvider`, `ClaimInclusionRuleRepository` |
-| [`tokens/`](file:///home/edmaputra/.gemini/antigravity/worktrees/ed-auth/create_roadmap_and_features/src/main/java/io/github/edmaputra/enhauthserv/tokens) | RFC 7662 Token Introspection, RFC 7009 Token Revocation, token policy configurations. | `authorization`, `clients`, `tenancy`, `oauth` | `IntrospectTokenService`, `RevokeTokenService`, `TokenRevoker`, `TokenPolicyProperties` |
+| [`tenancy/`](../../src/main/java/io/github/edmaputra/edidp/tenancy) | Request tenant resolution, thread-local context management, per-tenant dynamic issuer URLs. | *None* (Foundation) | `TenantContextFilter`, `ResolveTenantService`, `TenantContext`, `TenantIssuerService` |
+| [`users/`](../../src/main/java/io/github/edmaputra/edidp/users) | User profile entities, custom dynamic attributes, persistence repositories. | *None* (Foundation) | `UserProfile`, `UserProfileAttribute`, `UserProfileRepository`, `UserProfileAttributeRepository` |
+| [`shared/`](../../src/main/java/io/github/edmaputra/edidp/shared) | Cross-cutting endpoints and shared web resources. | *None* (Foundation) | `LoggedOutController` |
+| [`oauth/`](../../src/main/java/io/github/edmaputra/edidp/oauth) | Security filter chains, OIDC metadata/JWKS endpoints, tenant-aware JDBC repository adapters. | `tenancy`, `shared` | `SecurityConfig`, `TenantOidcMetadataController`, `TenantJwksController`, `TenantAware*` repositories |
+| [`clients/`](../../src/main/java/io/github/edmaputra/edidp/clients) | Client registration bootstrap, client credential authentication, scope verification. | `tenancy`, `oauth` | `ClientBootstrapService`, `ClientAuthenticationService`, `ClientScopeService` |
+| [`authorization/`](../../src/main/java/io/github/edmaputra/edidp/authorization) | Scope validation rules and authorization policy evaluations. | `clients` | `AuthorizationPolicyService`, `ValidateScopeCommand` |
+| [`consent/`](../../src/main/java/io/github/edmaputra/edidp/consent) | Interactive consent review, user scope approval flow, consent persistence. | `tenancy`, `oauth` | `AuthorizationConsentService`, `ConsentStore`, `OAuth2AuthorizationConsentController` |
+| [`claims/`](../../src/main/java/io/github/edmaputra/edidp/claims) | Dynamic claim filtering and assembly across UserInfo, ID Tokens, and Access Tokens. | `users`, `tenancy` | `UserClaimsService`, `UserClaimsDataProvider`, `ClaimInclusionRuleRepository` |
+| [`tokens/`](../../src/main/java/io/github/edmaputra/edidp/tokens) | RFC 7662 Token Introspection, RFC 7009 Token Revocation, token policy configurations. | `authorization`, `clients`, `tenancy`, `oauth` | `IntrospectTokenService`, `RevokeTokenService`, `TokenRevoker`, `TokenPolicyProperties` |
 
 ---
 

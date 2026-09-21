@@ -6,7 +6,7 @@ All runtime configuration lives in `src/main/resources/application.properties` a
 
 | Property | Default | Description |
 |---|---|---|
-| `spring.application.name` | `enhauthserv` | Application name |
+| `spring.application.name` | `ed-idp` | Application name |
 | `server.port` | `9000` | HTTP port |
 | `app.issuer-uri` | `http://localhost:9000` | Base OAuth2/OIDC issuer; tenants get `{issuer}/t/{tenant}` |
 
@@ -53,9 +53,9 @@ See [Multi-Tenancy](03-multi-tenancy.md).
 
 | Property group | Bound / consumed by |
 |---|---|
-| `app.token.*` | [`tokens/TokenPolicyProperties`](../../src/main/java/io/github/edmaputra/enhauthserv/tokens/TokenPolicyProperties.java) → `oauth/SecurityConfig.tokenSettings(...)` + `jwtTokenCustomizer(...)` |
+| `app.token.*` | [`tokens/TokenPolicyProperties`](../../src/main/java/io/github/edmaputra/edidp/tokens/TokenPolicyProperties.java) → `oauth/SecurityConfig.tokenSettings(...)` + `jwtTokenCustomizer(...)` |
 | `app.issuer-uri` | `oauth/SecurityConfig.authorizationServerSettings(...)`, `oauth/metadata/TenantOidcMetadataController` |
-| `tenant.resolution.*` | [`tenancy/TenantContextFilter`](../../src/main/java/io/github/edmaputra/enhauthserv/tenancy/TenantContextFilter.java) constructor → `TenantResolutionPolicy` |
+| `tenant.resolution.*` | [`tenancy/TenantContextFilter`](../../src/main/java/io/github/edmaputra/edidp/tenancy/TenantContextFilter.java) constructor → `TenantResolutionPolicy` |
 | `spring.datasource.*`, `spring.flyway.*` | Spring Boot autoconfiguration (JDBC stores + Flyway migrations) |
 
 Notes from the code:

@@ -23,7 +23,7 @@ The `jwtTokenCustomizer` enforces that a `client_credentials` grant only request
 
 | Concern | Class / file |
 |---|---|
-| Property binding | [`tokens/TokenPolicyProperties`](../../src/main/java/io/github/edmaputra/enhauthserv/tokens/TokenPolicyProperties.java) (`@ConfigurationProperties("app.token")`, enabled via `@EnableConfigurationProperties` on `oauth/SecurityConfig`) |
+| Property binding | [`tokens/TokenPolicyProperties`](../../src/main/java/io/github/edmaputra/edidp/tokens/TokenPolicyProperties.java) (`@ConfigurationProperties("app.token")`, enabled via `@EnableConfigurationProperties` on `oauth/SecurityConfig`) |
 | TTL / rotation wiring | `oauth/SecurityConfig.tokenSettings(...)` → `TokenSettings.builder().accessTokenTimeToLive().refreshTokenTimeToLive().reuseRefreshTokens()` |
 | Scope guard | `oauth/SecurityConfig.jwtTokenCustomizer(...)` → private `validateClientCredentialsScopes(...)` |
 

@@ -8,7 +8,7 @@ This guide walks through integrating public clients (React, Vue, Angular, Flutte
 
 Public clients run entirely on user devices and cannot securely store client secrets.
 - **Client Authentication**: Configured as `none` (no `client_secret` required).
-- **PKCE Mandatory**: EnhAuthServ strictly enforces Proof Key for Code Exchange (`code_challenge` / `code_verifier` with `S256`).
+- **PKCE Mandatory**: ed-idp strictly enforces Proof Key for Code Exchange (`code_challenge` / `code_verifier` with `S256`).
 - **Interactive Flow**: Users authenticate via the browser session, approve scopes on the consent screen, and receive tokens back at their redirect URI.
 
 ---
@@ -122,8 +122,8 @@ http://localhost:9000/oauth2/authorize?
 ## Step 4: User Authentication & Consent
 
 1. If not authenticated, the user is redirected to `/login` (default dev credentials: `demo-user` / `demo-password`).
-2. After login, if the user has not previously consented to the requested scopes, EnhAuthServ renders the `/oauth2/authorize-consent` screen.
-3. Upon approval, EnhAuthServ redirects the browser back to your `redirect_uri` with an authorization code:
+2. After login, if the user has not previously consented to the requested scopes, ed-idp renders the `/oauth2/authorize-consent` screen.
+3. Upon approval, ed-idp redirects the browser back to your `redirect_uri` with an authorization code:
    ```text
    http://localhost:3000/callback?code=SPLP2w...&state=xyzState123
    ```
