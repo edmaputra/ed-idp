@@ -46,7 +46,7 @@ import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.endpoint.OidcParameterNames;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
-import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.oidc.authentication.OidcUserInfoAuthenticationContext;
@@ -57,7 +57,6 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
-import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
@@ -101,7 +100,7 @@ public class SecurityConfig {
       HttpSecurity http,
       Function<OidcUserInfoAuthenticationContext, OidcUserInfo> userInfoMapper)
       throws Exception {
-    OAuth2AuthorizationServerConfigurer authorizationServerConfigurer = OAuth2AuthorizationServerConfigurer.authorizationServer();
+    OAuth2AuthorizationServerConfigurer authorizationServerConfigurer = new OAuth2AuthorizationServerConfigurer();
 
     http
         .securityMatcher(
@@ -171,7 +170,7 @@ public class SecurityConfig {
   }
 
   @Bean
-  OAuth2AuthorizationConsentService authorizationConsentService(
+  OAuth2AuthorizationConsentService oauth2AuthorizationConsentService(
       JdbcTemplate jdbcTemplate,
       RegisteredClientRepository registeredClientRepository) {
     return new TenantAwareOAuth2AuthorizationConsentService(jdbcTemplate, registeredClientRepository);
@@ -311,14 +310,6 @@ public class SecurityConfig {
         .build();
   }
 
-  @Bean
-  TokenSettings tokenSettings(TokenPolicyProperties tokenPolicyProperties) {
-    return TokenSettings.builder()
-        .accessTokenTimeToLive(tokenPolicyProperties.getAccessTokenTimeToLive())
-        .refreshTokenTimeToLive(tokenPolicyProperties.getRefreshTokenTimeToLive())
-        .reuseRefreshTokens(tokenPolicyProperties.isReuseRefreshTokens())
-        .build();
-  }
 
   private static void validateClientCredentialsScopes(
       Set<String> requestedScopes,

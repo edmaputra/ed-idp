@@ -53,36 +53,44 @@ public class TenantContextFilter extends OncePerRequestFilter {
       @NonNull HttpServletRequest request,
       @NonNull HttpServletResponse response,
       @NonNull FilterChain filterChain) throws ServletException, IOException {
-    try {
-      String requestUri = request.getRequestURI();
-      TenantResolutionResult resolution = resolveTenantService.resolve(
-          requestUri,
-          request.getHeader(headerName),
-          request.getRemoteAddr());
+    String requestUri = request.getRequestURI();
+    TenantResolutionResult resolution = resolveTenantService.resolve(
+        requestUri,
+        request.getHeader(headerName),
+        request.getRemoteAddr());
 
-      if (resolution.tenantId().isPresent()) {
-        TenantContext.setCurrentTenant(resolution.tenantId().get());
-        if (resolution.tenantSource() == TenantResolutionResult.TenantSource.HEADER) {
-          LOG.debug("Tenant resolved from header '{}' as '{}'", headerName, resolution.tenantId().get());
-        } else if (resolution.tenantSource() == TenantResolutionResult.TenantSource.PATH) {
-          LOG.debug("Tenant resolved from path as '{}'", resolution.tenantId().get());
-        }
-      } else if (resolution.invalidRequest()) {
-        LOG.debug("Tenant resolution failed for request URI '{}' with strict mode enabled", requestUri);
-        writeInvalidRequest(response, "Unable to resolve tenant from request");
-        return;
+    if (resolution.invalidRequest()) {
+      LOG.debug("Tenant resolution failed for request URI '{}' with strict mode enabled", requestUri);
+      writeInvalidRequest(response, "Unable to resolve tenant from request");
+      return;
+    }
+
+    if (resolution.tenantId().isPresent()) {
+      String tenantId = resolution.tenantId().get();
+      if (resolution.tenantSource() == TenantResolutionResult.TenantSource.HEADER) {
+        LOG.debug("Tenant resolved from header '{}' as '{}'", headerName, tenantId);
+      } else if (resolution.tenantSource() == TenantResolutionResult.TenantSource.PATH) {
+        LOG.debug("Tenant resolved from path as '{}'", tenantId);
       }
+    }
 
-      if (resolution.rewrittenPath().isPresent()) {
-        filterChain.doFilter(
-            new MachineEndpointRewriteRequest(request, resolution.rewrittenPath().get()),
-            response);
-        return;
+    HttpServletRequest requestToUse = resolution.rewrittenPath().isPresent()
+        ? new MachineEndpointRewriteRequest(request, resolution.rewrittenPath().get())
+        : request;
+
+    if (resolution.tenantId().isPresent()) {
+      try {
+        TenantContext.callWithTenant(resolution.tenantId().get(), () -> {
+          filterChain.doFilter(requestToUse, response);
+          return null;
+        });
+      } catch (ServletException | IOException | RuntimeException e) {
+        throw e;
+      } catch (Exception e) {
+        throw new ServletException(e);
       }
-
-      filterChain.doFilter(request, response);
-    } finally {
-      TenantContext.clear();
+    } else {
+      filterChain.doFilter(requestToUse, response);
     }
   }
 

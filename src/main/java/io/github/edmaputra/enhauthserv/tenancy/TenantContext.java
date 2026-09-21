@@ -3,32 +3,36 @@ package io.github.edmaputra.enhauthserv.tenancy;
 import java.util.Optional;
 
 /**
- * Request-thread tenant context holder.
+ * Scoped-value tenant context holder using Java 25 ScopedValue.
  */
 public final class TenantContext {
 
-  private static final ThreadLocal<String> CURRENT_TENANT = new ThreadLocal<>();
+  public static final ScopedValue<String> CURRENT_TENANT = ScopedValue.newInstance();
 
   private TenantContext() {
   }
 
-  public static void setCurrentTenant(String tenantId) {
-    if (tenantId == null || tenantId.isBlank()) {
-      clear();
-      return;
-    }
-    CURRENT_TENANT.set(tenantId);
-  }
-
   public static Optional<String> getCurrentTenant() {
-    return Optional.ofNullable(CURRENT_TENANT.get());
+    return CURRENT_TENANT.isBound() ? Optional.ofNullable(CURRENT_TENANT.get()) : Optional.empty();
   }
 
   public static String getCurrentTenantOrDefault(String fallbackTenant) {
-    return getCurrentTenant().orElse(fallbackTenant);
+    return CURRENT_TENANT.isBound() ? CURRENT_TENANT.get() : fallbackTenant;
   }
 
-  public static void clear() {
-    CURRENT_TENANT.remove();
+  public static void runWithTenant(String tenantId, Runnable runnable) {
+    if (tenantId == null || tenantId.isBlank()) {
+      runnable.run();
+    } else {
+      ScopedValue.where(CURRENT_TENANT, tenantId).run(runnable);
+    }
+  }
+
+  public static <T, X extends Throwable> T callWithTenant(String tenantId, ScopedValue.CallableOp<T, X> operation) throws X {
+    if (tenantId == null || tenantId.isBlank()) {
+      return operation.call();
+    } else {
+      return ScopedValue.where(CURRENT_TENANT, tenantId).call(operation);
+    }
   }
 }

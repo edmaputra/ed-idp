@@ -26,8 +26,7 @@ class UserClaimsServiceTests {
 
   @Test
   void returnsDefaultProfileWhenProfileIsMissing() {
-    TenantContext.setCurrentTenant("demo");
-    try {
+    TenantContext.runWithTenant("demo", () -> {
       when(dataProvider.findUserProfile("demo", "demo-user")).thenReturn(Optional.empty());
 
       UserClaimsService useCase = new UserClaimsService(dataProvider);
@@ -36,15 +35,12 @@ class UserClaimsServiceTests {
       assertThat(profile.username()).isEqualTo("demo-user");
       assertThat(profile.tenant()).isEqualTo("demo");
       assertThat(profile.email()).isEqualTo("demo-user@example.com");
-    } finally {
-      TenantContext.clear();
-    }
+    });
   }
 
   @Test
   void filtersReservedAndNonIncludedClaims() {
-    TenantContext.setCurrentTenant("demo");
-    try {
+    TenantContext.runWithTenant("demo", () -> {
       when(dataProvider.findUserAttributes("demo", "demo-user")).thenReturn(List.of(
           new UserAttributeData("favorite_color", "blue"),
           new UserAttributeData("scope", "read"),
@@ -59,8 +55,6 @@ class UserClaimsServiceTests {
           .containsEntry("favorite_color", "blue")
           .doesNotContainKey("scope")
           .doesNotContainKey("region");
-    } finally {
-      TenantContext.clear();
-    }
+    });
   }
 }

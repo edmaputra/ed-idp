@@ -71,6 +71,7 @@ public class ClientBootstrapService {
         .scope("write")
         .scope("introspection")
         .scope("revocation")
+        .clientSettings(ClientSettings.builder().requireProofKey(false).build())
         .tokenSettings(tokenSettings)
         .build();
   }

@@ -31,7 +31,7 @@ H2 console available at `http://localhost:9000/h2-console` (JDBC URL: `jdbc:h2:m
 
 ## Key Domain Concepts
 
-- **Multi-tenancy**: Tenant resolved per-request via `TenantContextFilter` (highest precedence filter) → `TenantContext` (thread-local). Resolution order: HTTP header (`X-Tenant-ID`) → path prefix (`/t/{tenant}/`). Controlled by `tenant.resolution.*` properties. Dynamic issuer resolved by `TenantIssuerService`.
+- **Multi-tenancy**: Tenant resolved per-request via `TenantContextFilter` (highest precedence filter) → `TenantContext` (Java 25 `ScopedValue`). Resolution order: HTTP header (`X-Tenant-ID`) → path prefix (`/t/{tenant}/`). Controlled by `tenant.resolution.*` properties. Dynamic issuer resolved by `TenantIssuerService`.
 - **Token policy**: Configurable via `app.token.*` (access TTL, refresh TTL, rotation, client credentials allowed scopes). Properties class: `TokenPolicyProperties`.
 - **Dynamic claims**: `UserClaimsService` assembles OIDC claims from `UserProfile` + `UserProfileAttribute` + `ClaimInclusionRule`. Claims route to `USERINFO`, `ID_TOKEN`, or `ACCESS_TOKEN` per `ClaimTarget`, guarded against reserved JWT claims.
 - **Tenant-aware OAuth2 services**: `TenantAwareOAuth2AuthorizationService`, `TenantAwareOAuth2AuthorizationConsentService`, `TenantAwareRegisteredClientRepository` scope all OAuth2 state per tenant.

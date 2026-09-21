@@ -2,7 +2,7 @@ package io.github.edmaputra.enhauthserv.tokens.introspection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import io.github.edmaputra.enhauthserv.tenancy.TenantContext;
 import java.util.Set;
 import java.util.UUID;
@@ -525,8 +525,7 @@ class TokenIntrospectionEndpointTests extends AuthServerIntegrationTests {
         String clientId,
         String clientSecret,
         Set<String> scopes) {
-        TenantContext.setCurrentTenant(tenant);
-        try {
+        TenantContext.runWithTenant(tenant, () -> {
             if (registeredClientRepository.findByClientId(clientId) != null) {
                 return;
             }
@@ -545,8 +544,6 @@ class TokenIntrospectionEndpointTests extends AuthServerIntegrationTests {
             }
 
             registeredClientRepository.save(builder.build());
-        } finally {
-            TenantContext.clear();
-        }
+        });
     }
 }
