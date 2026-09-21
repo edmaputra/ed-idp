@@ -3,7 +3,10 @@ package io.github.edmaputra.edidp.tenancy;
 import java.util.Optional;
 
 /**
- * Scoped-value tenant context holder using Java 25 ScopedValue.
+ * Scoped-value tenant context holder using Java 25 {@link ScopedValue}.
+ *
+ * @author edmaputra
+ * @since 0.0.1
  */
 public final class TenantContext {
 

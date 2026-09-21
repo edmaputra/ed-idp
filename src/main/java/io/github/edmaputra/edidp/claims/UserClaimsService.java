@@ -10,6 +10,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Service managing user profile extraction and dynamic claim assembly for tokens and UserInfo.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Service
 @RequiredArgsConstructor
 public class UserClaimsService {

@@ -2,6 +2,15 @@ package io.github.edmaputra.edidp.authorization;
 
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 
+/**
+ * Command encapsulating the arguments for evaluating whether a client possesses an authorized scope.
+ *
+ * @param clientId      the client identifier, must not be null or blank
+ * @param grantType     the authorization grant type being evaluated, must not be null
+ * @param requiredScope the required OAuth2 scope, must not be null or blank
+ * @author edmaputra
+ * @since 0.0.1
+ */
 public record ValidateScopeCommand(
     String clientId,
     AuthorizationGrantType grantType,

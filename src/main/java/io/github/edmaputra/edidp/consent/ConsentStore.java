@@ -6,6 +6,12 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
 import org.springframework.stereotype.Component;
 
+/**
+ * Adapter component wrapping Spring Authorization Server's consent service.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Component
 @RequiredArgsConstructor
 public class ConsentStore {

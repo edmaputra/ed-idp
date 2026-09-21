@@ -9,6 +9,12 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for authenticating client credentials supplied via HTTP Basic Auth headers.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor

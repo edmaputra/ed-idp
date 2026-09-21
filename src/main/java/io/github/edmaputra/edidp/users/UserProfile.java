@@ -13,6 +13,12 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * JPA entity representing a tenant-scoped user profile.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Entity
 @Table(name = "user_profiles")
 @Getter

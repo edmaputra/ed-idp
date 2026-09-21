@@ -13,6 +13,12 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * JPA entity representing a dynamic key-value profile attribute associated with a user profile.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Entity
 @Table(name = "user_profile_attributes")
 @Getter

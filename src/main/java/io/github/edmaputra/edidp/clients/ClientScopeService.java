@@ -6,6 +6,12 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for querying and validating scopes assigned to registered clients.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Service
 @RequiredArgsConstructor
 public class ClientScopeService {

@@ -13,6 +13,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+/**
+ * MVC controller managing user consent UI rendering and decision processing.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Controller
 @RequestMapping("/oauth2")
 @Slf4j

@@ -7,6 +7,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * Configuration properties for token lifetime, rotation policies, and allowed scopes.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @ConfigurationProperties(prefix = "app.token")
 public class TokenPolicyProperties {
 

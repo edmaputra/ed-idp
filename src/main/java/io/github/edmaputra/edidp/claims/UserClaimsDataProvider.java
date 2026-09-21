@@ -10,9 +10,15 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+/**
+ * Data provider adapter accessing user profile and attribute repositories for claim construction.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 @Component
 @RequiredArgsConstructor
-public class UserClaimsDataProvider  {
+public class UserClaimsDataProvider {
 
   private final UserProfileRepository userProfileRepository;
   private final UserProfileAttributeRepository userProfileAttributeRepository;

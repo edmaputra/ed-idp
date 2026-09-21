@@ -6,6 +6,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 
+/**
+ * Tenant-scoped registered client repository isolating OAuth2 client registrations per tenant.
+ *
+ * @author edmaputra
+ * @since 0.0.1
+ */
 public class TenantAwareRegisteredClientRepository extends JdbcRegisteredClientRepository {
 
   private static final String DEFAULT_TENANT = "demo";
