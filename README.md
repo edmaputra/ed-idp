@@ -1,4 +1,4 @@
-# Enhauthserv Documentation
+# ed-idp Documentation
 
 ## Contents
 - [Overview](#overview)
@@ -14,7 +14,7 @@
 - [How-To (Operational Runbooks)](docs/how-to/README.md)
 
 ## Overview
-Enhauthserv is a Spring Authorization Server based OAuth 2.1 and OpenID Connect provider with custom extensions for:
+ed-idp is a Spring Authorization Server based OAuth 2.1 and OpenID Connect provider with custom extensions for:
 - Token introspection (RFC 7662)
 - Token revocation (RFC 7009)
 - Dynamic profile-based claims in ID Token, Access Token, and UserInfo

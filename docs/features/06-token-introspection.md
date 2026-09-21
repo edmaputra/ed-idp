@@ -74,8 +74,8 @@ Custom introspection/revocation services run as `permitAll` chains; client authe
 
 | Concern | Class / file |
 |---|---|
-| Controller | [`tokens/introspection/OAuth2TokenIntrospectionController`](../../src/main/java/io/github/edmaputra/enhauthserv/tokens/introspection/OAuth2TokenIntrospectionController.java) |
-| Service | [`tokens/introspection/IntrospectTokenService`](../../src/main/java/io/github/edmaputra/enhauthserv/tokens/introspection/IntrospectTokenService.java) (+ `IntrospectTokenCommand`, `IntrospectTokenResult`) |
+| Controller | [`tokens/introspection/OAuth2TokenIntrospectionController`](../../src/main/java/io/github/edmaputra/edidp/tokens/introspection/OAuth2TokenIntrospectionController.java) |
+| Service | [`tokens/introspection/IntrospectTokenService`](../../src/main/java/io/github/edmaputra/edidp/tokens/introspection/IntrospectTokenService.java) (+ `IntrospectTokenCommand`, `IntrospectTokenResult`) |
 | Client auth | `clients/ClientAuthenticationService` |
 | Scope policy | `authorization/AuthorizationPolicyService` + `clients/ClientScopeService` |
 | Token check | `tokens/introspection/TokenIntrospectionValidator` |

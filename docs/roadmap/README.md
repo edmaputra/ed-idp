@@ -1,6 +1,6 @@
 # Roadmap — Toward a Complete Identity Provider
 
-This roadmap maps the full problem space of a production Identity Provider and positions EnhAuthServ's current capabilities against it. It is intended as a planning backlog: each item lists **what it is**, **why it matters**, and **how it would fit** this codebase's vertical-slice modular monolith.
+This roadmap maps the full problem space of a production Identity Provider and positions ed-idp's current capabilities against it. It is intended as a planning backlog: each item lists **what it is**, **why it matters**, and **how it would fit** this codebase's vertical-slice modular monolith.
 
 ## Current coverage snapshot
 

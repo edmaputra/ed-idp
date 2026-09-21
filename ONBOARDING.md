@@ -1,8 +1,8 @@
-# Onboarding Guide — EnhAuthServ (`ed-auth`)
+# Onboarding Guide — ed-idp
 
-Welcome 👋 This is your **guided learning path** for getting productive in EnhAuthServ.
+Welcome 👋 This is your **guided learning path** for getting productive in ed-idp.
 
-EnhAuthServ is a **multi-tenant OAuth 2.1 / OpenID Connect Identity Provider** built on Spring Authorization Server, structured as a **Vertical-Slice Modular Monolith** using **Spring Modulith**.
+ed-idp is a **multi-tenant OAuth 2.1 / OpenID Connect Identity Provider** built on Spring Authorization Server, structured as a **Vertical-Slice Modular Monolith** using **Spring Modulith**.
 
 > This file is the *map*. It tells you **what to read, in what order, and which code to open** so knowledge builds up layer by layer. All reference material lives in [docs/](docs/); this guide routes you through it.
 
@@ -46,7 +46,7 @@ curl -s -u demo-client:demo-secret \
    - Foundation slices with zero dependencies: `tenancy/`, `users/`, `shared/`
    - Protocol & Security slice: `oauth/`
    - Domain slices: `clients/`, `authorization/`, `consent/`, `claims/`, `tokens/`
-3. Inspect how Spring Security configures ordered filter chains in [`src/main/java/io/github/edmaputra/enhauthserv/oauth/SecurityConfig.java`](src/main/java/io/github/edmaputra/enhauthserv/oauth/SecurityConfig.java).
+3. Inspect how Spring Security configures ordered filter chains in [`src/main/java/io/github/edmaputra/edidp/oauth/SecurityConfig.java`](src/main/java/io/github/edmaputra/edidp/oauth/SecurityConfig.java).
 
 **The Feature Slices Cheat-Sheet**:
 
@@ -72,15 +72,15 @@ curl -s -u demo-client:demo-secret \
 
 1. Read [docs/features/01-oauth2-authorization-server.md](docs/features/01-oauth2-authorization-server.md) — supported grant types, PKCE requirements, and token endpoints.
 2. Read [docs/features/02-openid-connect.md](docs/features/02-openid-connect.md) — OIDC discovery metadata, ID tokens, and UserInfo.
-3. Open [`src/main/java/io/github/edmaputra/enhauthserv/oauth/SecurityConfig.java`](src/main/java/io/github/edmaputra/enhauthserv/oauth/SecurityConfig.java) to study:
+3. Open [`src/main/java/io/github/edmaputra/edidp/oauth/SecurityConfig.java`](src/main/java/io/github/edmaputra/edidp/oauth/SecurityConfig.java) to study:
    - `@Order(1)` Tenant machine endpoints
    - `@Order(2)` Authorization server core with `jwtTokenCustomizer` and `userInfoMapper`
    - `@Order(3)` Base machine endpoints
    - `@Order(4)` Default web security chain with form login
 4. Walk the integration tests:
-   - [`AuthServerAuthorizationFlowTests`](src/test/java/io/github/edmaputra/enhauthserv/authorization/AuthServerAuthorizationFlowTests.java)
-   - [`AuthServerPkceFlowTests`](src/test/java/io/github/edmaputra/enhauthserv/authorization/AuthServerPkceFlowTests.java)
-   - Shared base: [`AuthServerIntegrationTests`](src/test/java/io/github/edmaputra/enhauthserv/integration/AuthServerIntegrationTests.java)
+   - [`AuthServerAuthorizationFlowTests`](src/test/java/io/github/edmaputra/edidp/authorization/AuthServerAuthorizationFlowTests.java)
+   - [`AuthServerPkceFlowTests`](src/test/java/io/github/edmaputra/edidp/authorization/AuthServerPkceFlowTests.java)
+   - Shared base: [`AuthServerIntegrationTests`](src/test/java/io/github/edmaputra/edidp/integration/AuthServerIntegrationTests.java)
 
 ✅ **Checkpoint:** Run `./mvnw -Dtest=AuthServerPkceFlowTests test` and verify that the test suite passes.
 
@@ -99,13 +99,13 @@ curl -s -u demo-client:demo-secret \
 
 ### 3b. Token Policy & Lifetimes
 - Read [docs/features/04-token-policy.md](docs/features/04-token-policy.md).
-- Inspect [`TokenPolicyProperties`](src/main/java/io/github/edmaputra/enhauthserv/tokens/TokenPolicyProperties.java) (`app.token.*`).
-- See how refresh token rotation and client credentials scope whitelisting are verified in [`TokenPolicyControlsTests`](src/test/java/io/github/edmaputra/enhauthserv/tokens/TokenPolicyControlsTests.java).
+- Inspect [`TokenPolicyProperties`](src/main/java/io/github/edmaputra/edidp/tokens/TokenPolicyProperties.java) (`app.token.*`).
+- See how refresh token rotation and client credentials scope whitelisting are verified in [`TokenPolicyControlsTests`](src/test/java/io/github/edmaputra/edidp/tokens/TokenPolicyControlsTests.java).
 
 ### 3c. Dynamic Claims
 - Read [docs/features/05-dynamic-claims.md](docs/features/05-dynamic-claims.md).
 - Understand the data model: `UserProfile` + `UserProfileAttribute` + `ClaimInclusionRule` (`ClaimTarget`: `USERINFO`, `ID_TOKEN`, `ACCESS_TOKEN`).
-- Study [`UserClaimsService`](src/main/java/io/github/edmaputra/enhauthserv/claims/UserClaimsService.java) and verify reserved JWT claim safeguards.
+- Study [`UserClaimsService`](src/main/java/io/github/edmaputra/edidp/claims/UserClaimsService.java) and verify reserved JWT claim safeguards.
 
 ✅ **Checkpoint:** Trace how an attribute with target `ACCESS_TOKEN` is injected into the JWT access token by `jwtTokenCustomizer`.
 
@@ -159,4 +159,4 @@ Review the strategic roadmap to understand future development directions:
 | Feature Specifications | [docs/features/](docs/features/) |
 | Roadmap Backlog | [docs/roadmap/](docs/roadmap/) |
 | Developer Instructions | [CLAUDE.md](CLAUDE.md) |
-| Application Entry Point | [`src/main/java/io/github/edmaputra/enhauthserv/Application.java`](src/main/java/io/github/edmaputra/enhauthserv/Application.java) |
+| Application Entry Point | [`src/main/java/io/github/edmaputra/edidp/Application.java`](src/main/java/io/github/edmaputra/edidp/Application.java) |

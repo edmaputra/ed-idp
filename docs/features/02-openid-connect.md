@@ -1,6 +1,6 @@
 # Feature 2 — OpenID Connect (OIDC)
 
-EnhAuthServ layers OpenID Connect Core 1.0 on top of the OAuth2 server, issuing ID tokens and serving identity endpoints. Discovery and JWKS are tenant-scoped.
+ed-idp layers OpenID Connect Core 1.0 on top of the OAuth2 server, issuing ID tokens and serving identity endpoints. Discovery and JWKS are tenant-scoped.
 
 ## Endpoints
 
@@ -104,9 +104,9 @@ Backed by the `UserProfile` entity: `full_name`, `email`, `email_verified`, `loc
 
 | Concern | Class / file |
 |---|---|
-| Discovery doc | [`oauth/metadata/TenantOidcMetadataController`](../../src/main/java/io/github/edmaputra/enhauthserv/oauth/metadata/TenantOidcMetadataController.java) |
-| JWKS | [`oauth/metadata/TenantJwksController`](../../src/main/java/io/github/edmaputra/enhauthserv/oauth/metadata/TenantJwksController.java) + `JWKSource` bean in `oauth/SecurityConfig.jwkSource()` |
-| Per-tenant issuer | [`tenancy/TenantIssuerService`](../../src/main/java/io/github/edmaputra/enhauthserv/tenancy/TenantIssuerService.java) |
+| Discovery doc | [`oauth/metadata/TenantOidcMetadataController`](../../src/main/java/io/github/edmaputra/edidp/oauth/metadata/TenantOidcMetadataController.java) |
+| JWKS | [`oauth/metadata/TenantJwksController`](../../src/main/java/io/github/edmaputra/edidp/oauth/metadata/TenantJwksController.java) + `JWKSource` bean in `oauth/SecurityConfig.jwkSource()` |
+| Per-tenant issuer | [`tenancy/TenantIssuerService`](../../src/main/java/io/github/edmaputra/edidp/tenancy/TenantIssuerService.java) |
 | UserInfo mapping | `oauth/SecurityConfig.userInfoMapper(...)` bean (wired into the `@Order(2)` chain's `oidc().userInfoEndpoint()`) |
 | ID-token claims | `oauth/SecurityConfig.jwtTokenCustomizer(...)` (branch on `OidcParameterNames.ID_TOKEN`) |
 | Claim assembly | [`claims/UserClaimsService`](05-dynamic-claims.md) |

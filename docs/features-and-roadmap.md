@@ -1,6 +1,6 @@
-# Features and Roadmap: `ed-auth` (OAuth 2.1 & OIDC Authorization Server)
+# Features and Roadmap: `ed-idp` (OAuth 2.1 & OIDC Authorization Server)
 
-`ed-auth` (internally named `enhauthserv`) is a multi-tenant OAuth 2.1 and OpenID Connect 1.0 Identity Provider (IdP) and Authorization Server built on **Java 25**, **Spring Boot 4.1.1**, **Spring Authorization Server**, and **Spring Modulith**. It delivers strict per-tenant isolation, dynamic claim assembly, RFC-compliant token introspection and revocation, configurable token policies, and PKCE-enforced authorization flows.
+`ed-idp` is a multi-tenant OAuth 2.1 and OpenID Connect 1.0 Identity Provider (IdP) and Authorization Server built on **Java 25**, **Spring Boot 4.1.1**, **Spring Authorization Server**, and **Spring Modulith**. It delivers strict per-tenant isolation, dynamic claim assembly, RFC-compliant token introspection and revocation, configurable token policies, and PKCE-enforced authorization flows.
 
 > **Documentation Portal**: See [docs/README.md](README.md) for the complete table of contents and [Architecture & System Design](architecture/00-architecture.md) for deep technical design and sequence flows.
 

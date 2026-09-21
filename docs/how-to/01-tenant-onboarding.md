@@ -1,12 +1,12 @@
 # How-To: Tenant Onboarding & Multi-Tenant Isolation
 
-This guide walks through onboarding and configuring a new tenant in **EnhAuthServ (`ed-auth`)**.
+This guide walks through onboarding and configuring a new tenant in **ed-idp**.
 
 ---
 
 ## Overview
 
-In EnhAuthServ, multi-tenancy is logical and schema-isolated:
+In ed-idp, multi-tenancy is logical and schema-isolated:
 - Every tenant has a unique identifier matching `^[A-Za-z0-9_-]+$` (e.g. `acme-corp`, `fintech-eu`).
 - Each tenant receives its own dynamic issuer: `{baseIssuer}/t/{tenantId}` (e.g. `http://localhost:9000/t/acme-corp`).
 - Database records in `oauth2_registered_client`, `oauth2_authorization`, `oauth2_authorization_consent`, `users`, `user_profiles`, `user_profile_attributes`, and `claim_inclusion_rules` are partitioned by `tenant_id`.

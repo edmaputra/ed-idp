@@ -37,7 +37,7 @@ Registered OAuth2 clients are persisted in `oauth2_registered_client` and access
 
 | Concern | Class / file |
 |---|---|
-| Bootstrap service | [`clients/ClientBootstrapService`](../../src/main/java/io/github/edmaputra/enhauthserv/clients/ClientBootstrapService.java) |
+| Bootstrap service | [`clients/ClientBootstrapService`](../../src/main/java/io/github/edmaputra/edidp/clients/ClientBootstrapService.java) |
 | Scope queries | `clients/ClientScopeService` |
 | Client store | `oauth/SecurityConfig.registeredClientRepository(...)` → `oauth/TenantAwareRegisteredClientRepository` |
 | Startup trigger | `clients/ClientsConfig.demoRegisteredClientSeeder(...)` (`CommandLineRunner @Order(1)`) |

@@ -1,6 +1,6 @@
 # Feature 1 — OAuth 2.0 Authorization Server
 
-EnhAuthServ is a full OAuth 2.0 Authorization Server (RFC 6749) built on Spring Authorization Server. It issues JWT access tokens, refresh tokens, and OIDC ID tokens.
+ed-idp is a full OAuth 2.0 Authorization Server (RFC 6749) built on Spring Authorization Server. It issues JWT access tokens, refresh tokens, and OIDC ID tokens.
 
 ## Supported grant types
 
@@ -138,7 +138,7 @@ Access and ID tokens are **signed JWTs** (RSA). Signing keys are exposed per ten
 
 ## Implementation
 
-The protocol endpoints themselves are provided by **Spring Authorization Server** — this project does not hand-write `/oauth2/authorize` or `/oauth2/token`. The project's code configures and customizes that machinery in [`oauth/SecurityConfig`](../../src/main/java/io/github/edmaputra/enhauthserv/oauth/SecurityConfig.java).
+The protocol endpoints themselves are provided by **Spring Authorization Server** — this project does not hand-write `/oauth2/authorize` or `/oauth2/token`. The project's code configures and customizes that machinery in [`oauth/SecurityConfig`](../../src/main/java/io/github/edmaputra/edidp/oauth/SecurityConfig.java).
 
 | Concern | Class / bean | Notes |
 |---|---|---|

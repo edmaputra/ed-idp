@@ -1,6 +1,6 @@
 # Feature 10 — Session & Logout
 
-EnhAuthServ supports interactive form login and OpenID Connect RP-initiated logout.
+ed-idp supports interactive form login and OpenID Connect RP-initiated logout.
 
 ## Login
 
@@ -49,7 +49,7 @@ You have been signed out.
 | Form login | `oauth/SecurityConfig.defaultSecurityFilterChain` (`@Order(4)`, `formLogin(withDefaults())`) |
 | Login redirect | `LoginUrlAuthenticationEntryPoint("/login")` in the `@Order(2)` chain's exception handling |
 | Logout endpoint | Spring Authorization Server OIDC logout (`/connect/logout`), enabled by the AS configurer |
-| Post-logout page | [`shared/LoggedOutController`](../../src/main/java/io/github/edmaputra/enhauthserv/shared/LoggedOutController.java) (`/logged-out`, permitAll) |
+| Post-logout page | [`shared/LoggedOutController`](../../src/main/java/io/github/edmaputra/edidp/shared/LoggedOutController.java) (`/logged-out`, permitAll) |
 | Session plumbing | `oauth/SecurityConfig.sessionRegistry()`, `httpSessionEventPublisher()` |
 | User store | `JdbcUserDetailsManager` (`oauth/SecurityConfig.userDetailsService(...)`) |
 

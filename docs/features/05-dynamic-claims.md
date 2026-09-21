@@ -1,6 +1,6 @@
 # Feature 5 — Dynamic Claims
 
-Beyond the fixed profile fields, EnhAuthServ lets you attach arbitrary key/value attributes to a user and route each one to the UserInfo response, the ID token, the access token, or any combination — driven by data, not code.
+Beyond the fixed profile fields, ed-idp lets you attach arbitrary key/value attributes to a user and route each one to the UserInfo response, the ID token, the access token, or any combination — driven by data, not code.
 
 ## Data model
 
@@ -47,7 +47,7 @@ So `region` appears in UserInfo and the ID token, but never in the access token.
 
 | Concern | Class / file |
 |---|---|
-| Claim service | [`claims/UserClaimsService`](../../src/main/java/io/github/edmaputra/enhauthserv/claims/UserClaimsService.java) (+ `ClaimType`, `UserAttributeData`, `UserProfileData`) |
+| Claim service | [`claims/UserClaimsService`](../../src/main/java/io/github/edmaputra/edidp/claims/UserClaimsService.java) (+ `ClaimType`, `UserAttributeData`, `UserProfileData`) |
 | Claim data access | `claims/UserClaimsDataProvider` (`@Component` aggregating `users/UserProfileRepository`, `users/UserProfileAttributeRepository`, `claims/ClaimInclusionRuleRepository`) |
 | Tenant resolution | `tenancy/TenantContext` |
 | Feature models | `users/UserProfile`, `users/UserProfileAttribute`, `claims/ClaimInclusionRule`, `claims/ClaimTarget` |

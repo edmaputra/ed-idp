@@ -1,6 +1,6 @@
-# EnhAuthServ (`ed-auth`) Documentation Portal
+# ed-idp Documentation Portal
 
-**EnhAuthServ** is a multi-tenant OAuth 2.1 and OpenID Connect 1.0 **Identity Provider (IdP)** built on **Java 25**, **Spring Boot 4.1.1**, **Spring Authorization Server**, and **Spring Modulith**. It issues and validates security tokens, isolates state per tenant, executes token lifetime and revocation policies, and supports dynamically-assembled identity claims.
+**ed-idp** is a multi-tenant OAuth 2.1 and OpenID Connect 1.0 **Identity Provider (IdP)** built on **Java 25**, **Spring Boot 4.1.1**, **Spring Authorization Server**, and **Spring Modulith**. It issues and validates security tokens, isolates state per tenant, executes token lifetime and revocation policies, and supports dynamically-assembled identity claims.
 
 ---
 

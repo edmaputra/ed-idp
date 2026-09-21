@@ -1,12 +1,12 @@
 # How-To: User Provisioning & Dynamic Claim Routing
 
-This guide walks through creating user accounts, adding custom attributes, and routing them dynamically to **UserInfo**, **ID Tokens**, and **Access Tokens** using EnhAuthServ's database-driven claim rules.
+This guide walks through creating user accounts, adding custom attributes, and routing them dynamically to **UserInfo**, **ID Tokens**, and **Access Tokens** using ed-idp's database-driven claim rules.
 
 ---
 
 ## Overview
 
-Unlike traditional identity providers with static schemas, EnhAuthServ allows you to:
+Unlike traditional identity providers with static schemas, ed-idp allows you to:
 1. Attach arbitrary key-value attributes to any user.
 2. Direct each attribute to one or more token destinations:
    - `USERINFO` — returned in the `GET /userinfo` profile response.
@@ -161,7 +161,7 @@ curl -s http://localhost:9000/userinfo \
 
 ## Reserved Claim Protections
 
-EnhAuthServ prevents custom attributes from overriding core protocol claims. If a rule or attribute specifies any of the following keys, it is safely ignored:
+ed-idp prevents custom attributes from overriding core protocol claims. If a rule or attribute specifies any of the following keys, it is safely ignored:
 
 ```text
 sub, iss, aud, exp, iat, nbf, jti, scope, client_id,
