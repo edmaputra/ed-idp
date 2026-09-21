@@ -1,6 +1,6 @@
 # Architecture & System Design
 
-EnhAuthServ (`ed-auth`) is built as a **Vertical-Slice Modular Monolith** on **Java 21**, **Spring Boot 3.5.x**, **Spring Authorization Server**, and **Spring Modulith**. It functions as an enterprise-grade multi-tenant Identity Provider (IdP) and Authorization Server issuing OAuth 2.1 and OpenID Connect 1.0 tokens.
+EnhAuthServ (`ed-auth`) is built as a **Vertical-Slice Modular Monolith** on **Java 25**, **Spring Boot 4.1.1**, **Spring Authorization Server**, and **Spring Modulith**. It functions as an enterprise-grade multi-tenant Identity Provider (IdP) and Authorization Server issuing OAuth 2.1 and OpenID Connect 1.0 tokens.
 
 ---
 
@@ -125,7 +125,7 @@ flowchart LR
     subgraph Ingress["Resolution Layer"]
         H["Header: X-Tenant-ID"] --> RT["ResolveTenantService"]
         P["Path: /t/{tenant}/..."] --> RT
-        RT --> TC["TenantContext\n(ThreadLocal)"]
+        RT --> TC["TenantContext\n(ScopedValue)"]
     end
 
     subgraph Service["Application Services"]

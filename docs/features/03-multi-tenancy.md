@@ -1,6 +1,6 @@
 # Feature 3 — Multi-Tenancy
 
-Every piece of OAuth2 state — registered clients, authorizations, consents, users, and profile attributes — is isolated per tenant. Tenant identity is resolved once per request and propagated through a thread-local context.
+Every piece of OAuth2 state — registered clients, authorizations, consents, users, and profile attributes — is isolated per tenant. Tenant identity is resolved once per request and propagated through a scoped value context.
 
 > **Resolution model:** the tenant is carried in the request path (`/t/{tenant}/...`) and may also be supplied via `X-Tenant-ID` when header resolution is enabled.
 
@@ -13,15 +13,16 @@ Every piece of OAuth2 state — registered clients, authorizations, consents, us
 
 Tenant IDs must match `^[A-Za-z0-9_-]+$`.
 
-The resolved value is stored via `TenantContext.setCurrentTenant(...)` and cleared in a `finally` block.
+The resolved value is bound via `TenantContext.callWithTenant(tenantId, ...)` or `TenantContext.runWithTenant(tenantId, ...)` during request filter execution.
 
 ## TenantContext
 
-Thread-local holder:
+Java 25 `ScopedValue` holder:
 
-- `setCurrentTenant(id)` / `getCurrentTenant()` → `Optional<String>`
+- `runWithTenant(tenantId, runnable)`
+- `callWithTenant(tenantId, callable)`
+- `getCurrentTenant()` → `Optional<String>`
 - `getCurrentTenantOrDefault(fallback)`
-- `clear()`
 
 Use cases and services read it directly through `TenantContext`.
 
@@ -57,7 +58,7 @@ Migration `V0_0_1_007` adds a `tenant_id` discriminator (default `demo`) to `oau
 | Filter registration | `oauth/SecurityConfig.tenantContextFilterRegistration(...)` (`HIGHEST_PRECEDENCE`, URL `/*`) |
 | Request filter | [`tenancy/TenantContextFilter`](../../src/main/java/io/github/edmaputra/enhauthserv/tenancy/TenantContextFilter.java) |
 | Resolution logic | [`tenancy/ResolveTenantService`](../../src/main/java/io/github/edmaputra/enhauthserv/tenancy/ResolveTenantService.java) + `TenantResolutionPolicy`, `TenantResolutionResult` |
-| Thread-local | [`tenancy/TenantContext`](../../src/main/java/io/github/edmaputra/enhauthserv/tenancy/TenantContext.java) |
+| Scoped value | [`tenancy/TenantContext`](../../src/main/java/io/github/edmaputra/enhauthserv/tenancy/TenantContext.java) |
 | Service access | `claims/UserClaimsService` reads `TenantContext` directly |
 | Tenant-aware stores | `oauth/TenantAwareRegisteredClientRepository`, `TenantAwareOAuth2AuthorizationService`, `TenantAwareOAuth2AuthorizationConsentService` |
 | Issuer | `tenancy/TenantIssuerService` |

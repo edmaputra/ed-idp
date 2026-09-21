@@ -9,7 +9,8 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Service for validating tokens and formatting RFC 7662 token introspection responses.

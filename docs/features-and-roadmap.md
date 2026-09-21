@@ -1,6 +1,6 @@
 # Features and Roadmap: `ed-auth` (OAuth 2.1 & OIDC Authorization Server)
 
-`ed-auth` (internally named `enhauthserv`) is a multi-tenant OAuth 2.1 and OpenID Connect 1.0 Identity Provider (IdP) and Authorization Server built on **Java 21**, **Spring Boot 3.5.x**, **Spring Authorization Server**, and **Spring Modulith**. It delivers strict per-tenant isolation, dynamic claim assembly, RFC-compliant token introspection and revocation, configurable token policies, and PKCE-enforced authorization flows.
+`ed-auth` (internally named `enhauthserv`) is a multi-tenant OAuth 2.1 and OpenID Connect 1.0 Identity Provider (IdP) and Authorization Server built on **Java 25**, **Spring Boot 4.1.1**, **Spring Authorization Server**, and **Spring Modulith**. It delivers strict per-tenant isolation, dynamic claim assembly, RFC-compliant token introspection and revocation, configurable token policies, and PKCE-enforced authorization flows.
 
 > **Documentation Portal**: See [docs/README.md](README.md) for the complete table of contents and [Architecture & System Design](architecture/00-architecture.md) for deep technical design and sequence flows.
 
@@ -12,7 +12,7 @@
 > Detailed specification: [features/03-multi-tenancy.md](features/03-multi-tenancy.md)
 
 - **Tenant Context Resolution**: `TenantContextFilter` (highest-priority `OncePerRequestFilter`) resolves tenant identity from the request path (`/t/{tenant}/...`) or via HTTP headers (`X-Tenant-ID`), with configurable strict rejection (`require-explicit-tenant`) and proxy trust controls.
-- **Thread-Local Tenancy Propagation**: `TenantContext` maintains thread-bound tenant state across filters, services, and persistence layers with guaranteed cleanup.
+- **ScopedValue Tenancy Propagation**: `TenantContext` maintains Java 25 `ScopedValue`-bound tenant state across filters, services, and persistence layers with guaranteed cleanup.
 - **Dynamic Per-Tenant Issuer (`TenantIssuerService`)**: Automatically resolves and advertises per-tenant issuers (`{baseIssuer}/t/{tenantId}`) across OpenID configuration discovery, JWKS sets, and token `iss` claims.
 - **Tenant-Scoped Authorization Services**: Custom repository decorators extending Spring Authorization Server's JDBC layer (`TenantAwareRegisteredClientRepository`, `TenantAwareOAuth2AuthorizationService`, `TenantAwareOAuth2AuthorizationConsentService`) automatically partition clients, authorizations, and consents by tenant.
 - **Database Schema Namespacing**: Flyway migrations enforce tenant isolation across all state tables (`oauth2_registered_client`, `oauth2_authorization`, `oauth2_authorization_consent`, `users`, `authorities`, `user_profile_attributes`, `claim_inclusion_rules`) using `tenant_id` columns and composite indexes.

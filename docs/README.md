@@ -1,6 +1,6 @@
 # EnhAuthServ (`ed-auth`) Documentation Portal
 
-**EnhAuthServ** is a multi-tenant OAuth 2.1 and OpenID Connect 1.0 **Identity Provider (IdP)** built on **Java 21**, **Spring Boot 3.5.x**, **Spring Authorization Server**, and **Spring Modulith**. It issues and validates security tokens, isolates state per tenant, executes token lifetime and revocation policies, and supports dynamically-assembled identity claims.
+**EnhAuthServ** is a multi-tenant OAuth 2.1 and OpenID Connect 1.0 **Identity Provider (IdP)** built on **Java 25**, **Spring Boot 4.1.1**, **Spring Authorization Server**, and **Spring Modulith**. It issues and validates security tokens, isolates state per tenant, executes token lifetime and revocation policies, and supports dynamically-assembled identity claims.
 
 ---
 
@@ -137,9 +137,9 @@ docs/
 
 ## Technology Stack
 
-- **Runtime**: Java 21
-- **Framework**: Spring Boot 3.5.x, Spring Security 6.x, Spring Authorization Server
-- **Modularity**: Spring Modulith 1.4.x
+- **Runtime**: Java 25
+- **Framework**: Spring Boot 4.1.1, Spring Security 7.x, Spring Authorization Server
+- **Modularity**: Spring Modulith 2.1.x
 - **Persistence**: Spring Data JPA, Spring JDBC, Flyway
 - **Database**: H2 (in-memory dev default), swappable for PostgreSQL / MySQL
 - **Cryptography**: Nimbus JOSE JWT / JWK
