@@ -1,4 +1,4 @@
 @org.springframework.modulith.ApplicationModule(
-    allowedDependencies = { "authorization", "clients", "tenancy", "oauth" }
+    allowedDependencies = { "authorization", "clients", "claims", "tenancy" }
 )
 package io.github.edmaputra.edidp.tokens;

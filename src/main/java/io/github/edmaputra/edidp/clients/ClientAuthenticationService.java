@@ -2,6 +2,7 @@ package io.github.edmaputra.edidp.clients;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,14 +24,31 @@ public class ClientAuthenticationService {
   private final RegisteredClientRepository registeredClientRepository;
   private final PasswordEncoder passwordEncoder;
 
+  /**
+   * Internal record representing parsed HTTP Basic client credentials.
+   *
+   * @param clientId     client identifier
+   * @param clientSecret client secret
+   * @author edmaputra
+   * @since 0.0.1
+   */
+  public record ClientCredentials(String clientId, String clientSecret) {
+    public ClientCredentials {
+      if (clientId == null || clientId.isBlank()) {
+        throw new IllegalArgumentException("clientId cannot be null or blank");
+      }
+    }
+  }
+
   public ClientAuthenticationResult authenticateBasic(String authorizationHeader) {
-    String[] clientCredentials = extractClientCredentials(authorizationHeader);
-    if (clientCredentials == null) {
+    Optional<ClientCredentials> clientCredentials = extractClientCredentials(authorizationHeader);
+    if (clientCredentials.isEmpty()) {
       return ClientAuthenticationResult.failed(null);
     }
 
-    String clientId = clientCredentials[0];
-    String clientSecret = clientCredentials[1];
+    ClientCredentials credentials = clientCredentials.get();
+    String clientId = credentials.clientId();
+    String clientSecret = credentials.clientSecret();
 
     RegisteredClient registeredClient = registeredClientRepository.findByClientId(clientId);
     if (registeredClient == null || !isClientSecretValid(registeredClient, clientSecret)) {
@@ -43,9 +61,9 @@ public class ClientAuthenticationService {
         registeredClient.getScopes());
   }
 
-  private String[] extractClientCredentials(String authHeader) {
+  private Optional<ClientCredentials> extractClientCredentials(String authHeader) {
     if (authHeader == null || !authHeader.startsWith("Basic ")) {
-      return null;
+      return Optional.empty();
     }
 
     try {
@@ -54,15 +72,15 @@ public class ClientAuthenticationService {
           StandardCharsets.UTF_8);
       int colonIndex = credentials.indexOf(':');
       if (colonIndex == -1) {
-        return null;
+        return Optional.empty();
       }
 
       String clientId = credentials.substring(0, colonIndex);
       String clientSecret = credentials.substring(colonIndex + 1);
-      return new String[] {clientId, clientSecret};
+      return Optional.of(new ClientCredentials(clientId, clientSecret));
     } catch (Exception exception) {
       log.debug("Invalid Basic Auth header format", exception);
-      return null;
+      return Optional.empty();
     }
   }
 

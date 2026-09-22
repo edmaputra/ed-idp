@@ -84,7 +84,7 @@ public class TenantContextFilter extends OncePerRequestFilter {
     }
 
     HttpServletRequest requestToUse = resolution.rewrittenPath().isPresent()
-        ? new MachineEndpointRewriteRequest(request, resolution.rewrittenPath().get())
+        ? new TenantPathRewriteRequest(request, resolution.rewrittenPath().get())
         : request;
 
     if (resolution.tenantId().isPresent()) {
@@ -115,11 +115,11 @@ public class TenantContextFilter extends OncePerRequestFilter {
         .write("{\"error\":\"invalid_request\",\"error_description\":\"" + description + "\"}");
   }
 
-  private static final class MachineEndpointRewriteRequest extends HttpServletRequestWrapper {
+  private static final class TenantPathRewriteRequest extends HttpServletRequestWrapper {
 
     private final String rewrittenPath;
 
-    private MachineEndpointRewriteRequest(HttpServletRequest request, String rewrittenPath) {
+    private TenantPathRewriteRequest(HttpServletRequest request, String rewrittenPath) {
       super(request);
       this.rewrittenPath = rewrittenPath;
     }

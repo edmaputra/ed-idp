@@ -43,6 +43,31 @@ class AuthServerTokenEndpointTests extends AuthServerIntegrationTests {
   }
 
   @Test
+  void clientCredentialsGrantViaTenantPathReturnsAccessToken() throws Exception {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+    MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+    form.add("grant_type", "client_credentials");
+    form.add("scope", "read");
+
+    HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(form, headers);
+
+    ResponseEntity<String> response =
+        restTemplate
+            .withBasicAuth("demo-client", "demo-secret")
+            .postForEntity("/t/demo/oauth2/token", request, String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+    JsonNode body = objectMapper.readTree(response.getBody());
+    assertThat(body.path("access_token").asText()).isNotBlank();
+    assertThat(body.path("token_type").asText()).isEqualToIgnoringCase("Bearer");
+    assertThat(body.path("expires_in").asLong()).isGreaterThan(0);
+    assertThat(body.path("scope").asText()).contains("read");
+  }
+
+  @Test
   void invalidClientSecretIsRejected() {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);

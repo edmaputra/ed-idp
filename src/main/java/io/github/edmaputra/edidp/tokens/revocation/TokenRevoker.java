@@ -1,5 +1,6 @@
 package io.github.edmaputra.edidp.tokens.revocation;
 
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
@@ -19,8 +20,9 @@ public class TokenRevoker {
   private final OAuth2AuthorizationService oauth2AuthorizationService;
 
   public void revokeTokenForClient(String token, String tokenTypeHint, String registeredClientId) {
-    OAuth2TokenType tokenType = resolveTokenType(tokenTypeHint);
-    OAuth2Authorization authorization = oauth2AuthorizationService.findByToken(token, tokenType);
+    OAuth2Authorization authorization = resolveTokenType(tokenTypeHint)
+        .map(type -> oauth2AuthorizationService.findByToken(token, type))
+        .orElseGet(() -> oauth2AuthorizationService.findByToken(token, null));
 
     // RFC 7009 requires idempotent success for unknown tokens.
     if (authorization == null) {
@@ -37,14 +39,14 @@ public class TokenRevoker {
     oauth2AuthorizationService.save(builder.build());
   }
 
-  private OAuth2TokenType resolveTokenType(String tokenTypeHint) {
+  private Optional<OAuth2TokenType> resolveTokenType(String tokenTypeHint) {
     if ("access_token".equals(tokenTypeHint)) {
-      return OAuth2TokenType.ACCESS_TOKEN;
+      return Optional.of(OAuth2TokenType.ACCESS_TOKEN);
     }
     if ("refresh_token".equals(tokenTypeHint)) {
-      return OAuth2TokenType.REFRESH_TOKEN;
+      return Optional.of(OAuth2TokenType.REFRESH_TOKEN);
     }
-    return null;
+    return Optional.empty();
   }
 
   private void invalidateMatchingTokens(
@@ -67,4 +69,3 @@ public class TokenRevoker {
     }
   }
 }
-
