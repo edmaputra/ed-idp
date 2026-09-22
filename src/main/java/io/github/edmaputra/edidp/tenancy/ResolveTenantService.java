@@ -14,8 +14,8 @@ public class ResolveTenantService {
 
   private static final Pattern TENANT_ID_PATTERN = Pattern.compile("^[A-Za-z0-9_-]+$");
   private static final Pattern TENANT_PATH_PATTERN = Pattern.compile("^/t/([A-Za-z0-9_-]+)(/.*)?$");
-  private static final Pattern TENANT_MACHINE_ENDPOINT_PATTERN =
-      Pattern.compile("^/t/([A-Za-z0-9_-]+)/(oauth2/introspect|oauth2/revoke)$");
+  private static final Pattern TENANT_ENDPOINT_PATTERN =
+      Pattern.compile("^/t/([A-Za-z0-9_-]+)/(oauth2/token|oauth2/authorize|oauth2/introspect|oauth2/revoke|userinfo|connect/logout|oauth2/authorize-consent)$");
 
   private final TenantResolutionPolicy policy;
 
@@ -28,10 +28,10 @@ public class ResolveTenantService {
     Optional<String> rewrittenPath = Optional.empty();
 
     if (policy.pathEnabled() && requestUri != null) {
-      Matcher machineEndpointMatcher = TENANT_MACHINE_ENDPOINT_PATTERN.matcher(requestUri);
-      if (machineEndpointMatcher.matches()) {
-        pathTenant = Optional.of(machineEndpointMatcher.group(1));
-        rewrittenPath = Optional.of("/" + machineEndpointMatcher.group(2));
+      Matcher endpointMatcher = TENANT_ENDPOINT_PATTERN.matcher(requestUri);
+      if (endpointMatcher.matches()) {
+        pathTenant = Optional.of(endpointMatcher.group(1));
+        rewrittenPath = Optional.of("/" + endpointMatcher.group(2));
       } else {
         pathTenant = resolveTenantFromRequestPath(requestUri);
       }
