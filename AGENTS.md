@@ -39,6 +39,8 @@ Dependencies flow strictly along declared `@ApplicationModule(allowedDependencie
 - **Build Package**: `./mvnw clean package`
 - **Run Tests**: `./mvnw test`
 - **Run Single Test**: `./mvnw -Dtest=ClassName test`
+- **Run Tests with Coverage**: `./mvnw clean verify`
+- **Generate Coverage Summary**: `python3 .agents/scripts/coverage/generate-jacoco-summary.py --output target/coverage-summary.md`
 - **Run Application**: `./mvnw spring-boot:run` (default port: `9000`)
 - **Refresh Structure Map**: `python3 .agents/scripts/scan-structure.py --force`
 
@@ -68,3 +70,8 @@ All contributions MUST strictly comply with standards defined in `.agents/rules/
 4. **Automated Structure Discovery (`rules/shared/project-structure-standards.md`)**:
    - The project structure map is cached at `.agents/project-structure.json` (git-ignored).
    - Antigravity lifecycle hooks automatically refresh the map if missing.
+
+5. **CI Pipeline & Code Coverage (`rules/shared/git-and-ci-standards.md`)**:
+   - Automated CI runs via `.github/workflows/ci.yml` targeting Java 25.
+   - Target a minimum of **80% line coverage** on core business and domain logic.
+   - Multi-module JaCoCo coverage summaries are generated via `python3 .agents/scripts/coverage/generate-jacoco-summary.py` and posted idempotently on PRs.
