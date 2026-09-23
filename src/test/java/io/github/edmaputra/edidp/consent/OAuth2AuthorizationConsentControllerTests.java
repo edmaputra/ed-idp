@@ -167,4 +167,54 @@ class OAuth2AuthorizationConsentControllerTests {
     assertThat(view).contains("client_id=demo-client");
     assertThat(view).contains("scope=openid");
   }
+
+  @Test
+  void consentFormWithScopeParamAndNullClientNameDisplaysConsentForm() {
+    when(authentication.getName()).thenReturn("demo-user");
+    RegisteredClient client = RegisteredClient.withId("uuid-789")
+        .clientId("demo-client")
+        .authorizationGrantType(org.springframework.security.oauth2.core.AuthorizationGrantType.AUTHORIZATION_CODE)
+        .redirectUri("http://client.example.com/callback")
+        .scope("read")
+        .scope("write")
+        .build(); // clientName is null
+    when(registeredClientRepository.findByClientId("demo-client")).thenReturn(client);
+    when(authorizationConsentService.checkConsent(any()))
+        .thenReturn(ConsentDecisionResult.consentNeeded());
+
+    Model model = new ConcurrentModel();
+    String view = controller.consentForm(
+        "demo-client",
+        null,
+        "read write",
+        "http://client.example.com/callback",
+        null,
+        authentication,
+        model);
+
+    assertThat(view).isEqualTo("authorize-consent");
+    assertThat(model.getAttribute("clientId")).isEqualTo("demo-client");
+    assertThat(model.getAttribute("clientName")).isEqualTo("uuid-789");
+    assertThat(model.getAttribute("state")).isEqualTo("");
+    @SuppressWarnings("unchecked")
+    Set<String> scopes = (Set<String>) model.getAttribute("requestedScopes");
+    assertThat(scopes).containsExactlyInAnyOrder("read", "write");
+  }
+
+  @Test
+  void approveConsentForUnknownClientReturnsConsentError() {
+    when(authentication.getName()).thenReturn("demo-user");
+    when(registeredClientRepository.findByClientId("unknown-client")).thenReturn(null);
+
+    String view = controller.approveConsent(
+        "unknown-client",
+        "http://client.example.com/callback",
+        "read",
+        "xyz",
+        new String[]{"read"},
+        "approve",
+        authentication);
+
+    assertThat(view).isEqualTo("consent-error");
+  }
 }
