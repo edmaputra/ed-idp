@@ -131,7 +131,8 @@ docs/
 |---|---|---|---|
 | Confidential Client | `demo-client` | `demo-secret` | HTTP Basic or POST body auth; all grant types |
 | Public Client (PKCE) | `pkce-public-client` | — | `authorization_code` with PKCE mandatory (`S256`) |
-| End User | `demo-user` | `demo-password` | Form login session; role `ROLE_USER` |
+| End User | `demo-user@example.com` | `demo-password` | Form login session; role `ROLE_USER` |
+| Admin User | `admin@example.com` | `admin-password` | Admin Console session; role `ROLE_ADMIN` |
 
 ---
 
@@ -140,6 +141,7 @@ docs/
 - **Runtime**: Java 25
 - **Framework**: Spring Boot 4.1.1, Spring Security 7.x, Spring Authorization Server
 - **Modularity**: Spring Modulith 2.1.x
-- **Persistence**: Spring Data JPA, Spring JDBC, Flyway
+- **Persistence**: Spring Data JPA, Spring JDBC, Liquibase
 - **Database**: H2 (in-memory dev default), swappable for PostgreSQL / MySQL
+- **IAM Engine**: `ed-iam-management` (unified schema and multi-tenancy)
 - **Cryptography**: Nimbus JOSE JWT / JWK
