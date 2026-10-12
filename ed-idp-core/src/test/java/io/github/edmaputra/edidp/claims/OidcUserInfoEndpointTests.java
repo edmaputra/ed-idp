@@ -27,8 +27,8 @@ class OidcUserInfoEndpointTests extends AuthServerIntegrationTests {
     assertThat(userInfoResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
     JsonNode userInfoBody = objectMapper.readTree(userInfoResponse.getBody());
-    assertThat(userInfoBody.path("sub").asText()).isEqualTo("demo-user");
-    assertThat(userInfoBody.path("preferred_username").asText()).isEqualTo("demo-user");
+    assertThat(userInfoBody.path("sub").asText()).isEqualTo("demo-user@example.com");
+    assertThat(userInfoBody.path("preferred_username").asText()).isEqualTo("demo-user@example.com");
     assertThat(userInfoBody.path("name").asText()).isEqualTo("Demo User");
     assertThat(userInfoBody.path("email").asText()).isEqualTo("demo-user@example.com");
     assertThat(userInfoBody.path("email_verified").asBoolean()).isTrue();

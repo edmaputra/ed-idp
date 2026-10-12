@@ -38,7 +38,7 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.oidc.authentication.OidcUserInfoAuthenticationContext;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
@@ -160,8 +160,8 @@ public class SecurityConfig {
   }
 
   @Bean
-  JdbcUserDetailsManager userDetailsService(DataSource dataSource) {
-    return new JdbcUserDetailsManager(dataSource);
+  UserDetailsService userDetailsService(JdbcTemplate jdbcTemplate) {
+    return new IamUserDetailsService(jdbcTemplate);
   }
 
   @Bean

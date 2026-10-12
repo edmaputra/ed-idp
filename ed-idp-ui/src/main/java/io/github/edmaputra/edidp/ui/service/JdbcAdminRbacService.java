@@ -1,7 +1,9 @@
 package io.github.edmaputra.edidp.ui.service;
 
+import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * JDBC implementation of {@link AdminRbacService}.
+ * JDBC implementation of {@link AdminRbacService} aligned with ed-iam unified schema.
  *
  * @author edmaputra
  * @since 0.0.1
@@ -27,6 +29,17 @@ public class JdbcAdminRbacService implements AdminRbacService {
     this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate, "jdbcTemplate must not be null");
   }
 
+  private static UUID toUuid(String val) {
+    if (val == null || val.isBlank()) {
+      return null;
+    }
+    try {
+      return UUID.fromString(val.trim());
+    } catch (IllegalArgumentException e) {
+      return UUID.nameUUIDFromBytes(val.trim().getBytes(StandardCharsets.UTF_8));
+    }
+  }
+
   @Override
   public List<PermissionSummary> listPermissions() {
     return listPermissions(null, null);
@@ -36,13 +49,13 @@ public class JdbcAdminRbacService implements AdminRbacService {
   public List<PermissionSummary> listPermissions(String tenantId, String category) {
     StringBuilder sql = new StringBuilder("""
         SELECT id, code, name, description, category, is_system_permission, tenant_id
-        FROM iam_permissions
+        FROM iam_permission
         WHERE 1=1
         """);
     List<Object> params = new ArrayList<>();
     if (tenantId != null && !tenantId.isBlank()) {
       sql.append(" AND (tenant_id = ? OR tenant_id IS NULL)");
-      params.add(tenantId);
+      params.add(toUuid(tenantId));
     }
     if (category != null && !category.isBlank()) {
       sql.append(" AND category = ?");
@@ -63,10 +76,11 @@ public class JdbcAdminRbacService implements AdminRbacService {
 
   @Override
   public Optional<PermissionSummary> getPermissionById(String id) {
+    UUID uuid = toUuid(id);
     String sql = """
         SELECT id, code, name, description, category, is_system_permission, tenant_id
-        FROM iam_permissions
-        WHERE id = ?
+        FROM iam_permission
+        WHERE id = ? OR code = ?
         """;
     List<PermissionSummary> results = jdbcTemplate.query(sql, (rs, rowNum) -> new PermissionSummary(
         rs.getString("id"),
@@ -76,7 +90,7 @@ public class JdbcAdminRbacService implements AdminRbacService {
         rs.getString("category"),
         rs.getBoolean("is_system_permission"),
         rs.getString("tenant_id")
-    ), id);
+    ), uuid, id);
     return results.stream().findFirst();
   }
 
@@ -84,7 +98,7 @@ public class JdbcAdminRbacService implements AdminRbacService {
   public Optional<PermissionSummary> getPermissionByCode(String code) {
     String sql = """
         SELECT id, code, name, description, category, is_system_permission, tenant_id
-        FROM iam_permissions
+        FROM iam_permission
         WHERE code = ?
         """;
     List<PermissionSummary> results = jdbcTemplate.query(sql, (rs, rowNum) -> new PermissionSummary(
@@ -102,23 +116,24 @@ public class JdbcAdminRbacService implements AdminRbacService {
   @Override
   @Transactional
   public PermissionSummary createPermission(CreatePermissionCommand command) {
-    String id = "perm-" + UUID.randomUUID().toString().substring(0, 8);
-    long now = System.currentTimeMillis();
+    UUID id = UUID.randomUUID();
+    UUID tenantUuid = toUuid(command.tenantId());
+    Timestamp now = Timestamp.from(Instant.now());
     jdbcTemplate.update("""
-        INSERT INTO iam_permissions (id, code, name, description, category, is_system_permission, tenant_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, false, ?, ?, ?)
+        INSERT INTO iam_permission (id, tenant_id, code, name, description, category, is_system_permission, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, false, ?, ?)
         """,
         id,
+        tenantUuid,
         command.code().trim(),
         command.name().trim(),
         command.description(),
         command.category().trim().toUpperCase(),
-        command.tenantId(),
         now,
         now
     );
     return new PermissionSummary(
-        id,
+        id.toString(),
         command.code().trim(),
         command.name().trim(),
         command.description(),
@@ -136,16 +151,18 @@ public class JdbcAdminRbacService implements AdminRbacService {
     if (existing.systemPermission()) {
       throw new IllegalStateException("System permissions cannot be modified");
     }
-    long now = System.currentTimeMillis();
+    Timestamp now = Timestamp.from(Instant.now());
+    UUID permUuid = toUuid(command.id());
     jdbcTemplate.update("""
-        UPDATE iam_permissions
+        UPDATE iam_permission
         SET name = ?, description = ?, category = ?, updated_at = ?
-        WHERE id = ? AND is_system_permission = false
+        WHERE (id = ? OR code = ?) AND is_system_permission = false
         """,
         command.name().trim(),
         command.description(),
         command.category().trim().toUpperCase(),
         now,
+        permUuid,
         command.id()
     );
     return new PermissionSummary(
@@ -167,28 +184,30 @@ public class JdbcAdminRbacService implements AdminRbacService {
     if (existing.systemPermission()) {
       throw new IllegalStateException("System permissions cannot be deleted");
     }
-    jdbcTemplate.update("DELETE FROM iam_permissions WHERE id = ? AND is_system_permission = false", id);
+    UUID permUuid = toUuid(id);
+    jdbcTemplate.update("DELETE FROM iam_permission WHERE (id = ? OR code = ?) AND is_system_permission = false", permUuid, id);
   }
 
   @Override
   public List<RoleSummary> listRoles() {
     String sql = """
-        SELECT r.id, r.name, r.description, r.tenant_id, p.name AS perm_name
-        FROM iam_roles r
-        LEFT JOIN iam_role_permissions rp ON r.id = rp.role_id
-        LEFT JOIN iam_permissions p ON rp.permission_id = p.id
-        ORDER BY r.name ASC
+        SELECT r.id, r.code, r.name, r.description, r.tenant_id, rp.permission AS perm_code
+        FROM iam_role r
+        LEFT JOIN iam_role_permission rp ON r.id = rp.role_id
+        ORDER BY r.code ASC
         """;
 
     Map<String, RoleAggregation> map = new LinkedHashMap<>();
     jdbcTemplate.query(sql, rs -> {
       String id = rs.getString("id");
+      String code = rs.getString("code");
       String name = rs.getString("name");
       String desc = rs.getString("description");
       String tenantId = rs.getString("tenant_id");
-      String perm = rs.getString("perm_name");
+      String perm = rs.getString("perm_code");
 
-      RoleAggregation agg = map.computeIfAbsent(id, k -> new RoleAggregation(id, name, desc, tenantId));
+      String displayName = (code != null && !code.isBlank()) ? code : name;
+      RoleAggregation agg = map.computeIfAbsent(id, k -> new RoleAggregation(id, displayName, desc, tenantId));
       if (perm != null && !agg.permissions.contains(perm)) {
         agg.permissions.add(perm);
       }
@@ -203,33 +222,41 @@ public class JdbcAdminRbacService implements AdminRbacService {
 
   @Override
   public long countRoles() {
-    Long count = jdbcTemplate.queryForObject("SELECT count(*) FROM iam_roles", Long.class);
+    Long count = jdbcTemplate.queryForObject("SELECT count(*) FROM iam_role", Long.class);
     return count != null ? count : 0L;
   }
 
   @Override
   @Transactional
   public void createRole(CreateRoleCommand command) {
-    String roleId = "role-" + UUID.randomUUID().toString().substring(0, 8);
+    UUID roleId = UUID.randomUUID();
     String roleName = command.name().trim();
     if (!roleName.startsWith("ROLE_")) {
       roleName = "ROLE_" + roleName.toUpperCase();
     }
+    UUID tenantUuid = toUuid(command.tenantId());
+    Timestamp now = Timestamp.from(Instant.now());
 
-    jdbcTemplate.update(
-        "INSERT INTO iam_roles (id, name, description, tenant_id) VALUES (?, ?, ?, ?)",
+    jdbcTemplate.update("""
+        INSERT INTO iam_role (id, tenant_id, code, name, description, is_system_role, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, false, ?, ?)
+        """,
         roleId,
+        tenantUuid,
+        roleName,
         roleName,
         command.description(),
-        command.tenantId()
+        now,
+        now
     );
 
     if (command.permissionIds() != null && !command.permissionIds().isEmpty()) {
-      for (String permId : command.permissionIds()) {
+      for (String permIdOrCode : command.permissionIds()) {
+        String permCode = resolvePermissionCode(permIdOrCode);
         jdbcTemplate.update(
-            "INSERT INTO iam_role_permissions (role_id, permission_id) VALUES (?, ?)",
+            "INSERT INTO iam_role_permission (role_id, permission) VALUES (?, ?)",
             roleId,
-            permId
+            permCode
         );
       }
     }
@@ -238,18 +265,25 @@ public class JdbcAdminRbacService implements AdminRbacService {
   @Override
   @Transactional
   public void deleteRole(String roleId, String tenantId) {
-    jdbcTemplate.update("DELETE FROM iam_roles WHERE id = ? AND tenant_id = ?", roleId, tenantId);
+    UUID rUuid = toUuid(roleId);
+    UUID tUuid = toUuid(tenantId);
+    if (tUuid != null) {
+      jdbcTemplate.update("DELETE FROM iam_role WHERE (id = ? OR code = ?) AND tenant_id = ?", rUuid, roleId, tUuid);
+    } else {
+      jdbcTemplate.update("DELETE FROM iam_role WHERE id = ? OR code = ?", rUuid, roleId);
+    }
   }
 
   @Override
   public Optional<RoleDetail> getRole(String id) {
+    UUID rUuid = toUuid(id);
     String sql = """
-        SELECT r.id, r.name, r.description, r.tenant_id, rp.permission_id
-        FROM iam_roles r
-        LEFT JOIN iam_role_permissions rp ON r.id = rp.role_id
-        WHERE r.id = ?
+        SELECT r.id, r.code, r.name, r.description, r.tenant_id, rp.permission AS perm_code
+        FROM iam_role r
+        LEFT JOIN iam_role_permission rp ON r.id = rp.role_id
+        WHERE r.id = ? OR r.code = ?
         """;
-    List<String> permIds = new ArrayList<>();
+    List<String> permissionCodes = new ArrayList<>();
     String[] meta = new String[4];
     boolean[] found = new boolean[1];
 
@@ -257,37 +291,47 @@ public class JdbcAdminRbacService implements AdminRbacService {
       found[0] = true;
       if (meta[0] == null) {
         meta[0] = rs.getString("id");
-        meta[1] = rs.getString("name");
+        meta[1] = rs.getString("code") != null ? rs.getString("code") : rs.getString("name");
         meta[2] = rs.getString("description");
         meta[3] = rs.getString("tenant_id");
       }
-      String pId = rs.getString("permission_id");
-      if (pId != null && !permIds.contains(pId)) {
-        permIds.add(pId);
+      String pCode = rs.getString("perm_code");
+      if (pCode != null && !permissionCodes.contains(pCode)) {
+        permissionCodes.add(pCode);
       }
-    }, id);
+    }, rUuid, id);
 
     if (!found[0]) {
       return Optional.empty();
     }
-    return Optional.of(new RoleDetail(meta[0], meta[1], meta[2], meta[3], List.copyOf(permIds)));
+    return Optional.of(new RoleDetail(meta[0], meta[1], meta[2], meta[3], List.copyOf(permissionCodes)));
   }
 
   @Override
   @Transactional
   public void updateRole(UpdateRoleCommand command) {
+    UUID rUuid = toUuid(command.id());
+    Timestamp now = Timestamp.from(Instant.now());
     jdbcTemplate.update(
-        "UPDATE iam_roles SET description = ? WHERE id = ?",
+        "UPDATE iam_role SET description = ?, updated_at = ? WHERE id = ? OR code = ?",
         command.description(),
+        now,
+        rUuid,
         command.id()
     );
-    jdbcTemplate.update("DELETE FROM iam_role_permissions WHERE role_id = ?", command.id());
+
+    // Delete existing role permissions
+    jdbcTemplate.update("DELETE FROM iam_role_permission WHERE role_id IN (SELECT id FROM iam_role WHERE id = ? OR code = ?)", rUuid, command.id());
+
+    // Resolve UUID for role_id
+    UUID targetRoleId = resolveRoleId(command.id());
     if (command.permissionIds() != null && !command.permissionIds().isEmpty()) {
-      for (String permId : command.permissionIds()) {
+      for (String permIdOrCode : command.permissionIds()) {
+        String permCode = resolvePermissionCode(permIdOrCode);
         jdbcTemplate.update(
-            "INSERT INTO iam_role_permissions (role_id, permission_id) VALUES (?, ?)",
-            command.id(),
-            permId
+            "INSERT INTO iam_role_permission (role_id, permission) VALUES (?, ?)",
+            targetRoleId,
+            permCode
         );
       }
     }
@@ -296,24 +340,26 @@ public class JdbcAdminRbacService implements AdminRbacService {
   @Override
   public List<GroupSummary> listGroups() {
     String sql = """
-        SELECT g.id, g.name, g.description, g.tenant_id, r.name AS role_name,
-               (SELECT count(*) FROM iam_group_members gm WHERE gm.group_id = g.id) AS member_count
-        FROM iam_groups g
-        LEFT JOIN iam_group_roles gr ON g.id = gr.group_id
-        LEFT JOIN iam_roles r ON gr.role_id = r.id
-        ORDER BY g.name ASC
+        SELECT g.id, g.code, g.name, g.description, g.tenant_id, r.code AS role_code,
+               (SELECT count(*) FROM iam_user_group_membership gm WHERE gm.group_id = g.id) AS member_count
+        FROM iam_group g
+        LEFT JOIN iam_group_role_assignment gra ON g.id = gra.group_id
+        LEFT JOIN iam_role r ON gra.role_id = r.id
+        ORDER BY g.code ASC
         """;
 
     Map<String, GroupAggregation> map = new LinkedHashMap<>();
     jdbcTemplate.query(sql, rs -> {
       String id = rs.getString("id");
+      String code = rs.getString("code");
       String name = rs.getString("name");
       String desc = rs.getString("description");
       String tenantId = rs.getString("tenant_id");
       int memberCount = rs.getInt("member_count");
-      String role = rs.getString("role_name");
+      String role = rs.getString("role_code");
 
-      GroupAggregation agg = map.computeIfAbsent(id, k -> new GroupAggregation(id, name, desc, tenantId, memberCount));
+      String displayName = (name != null && !name.isBlank()) ? name : code;
+      GroupAggregation agg = map.computeIfAbsent(id, k -> new GroupAggregation(id, displayName, desc, tenantId, memberCount));
       if (role != null && !agg.roles.contains(role)) {
         agg.roles.add(role);
       }
@@ -328,28 +374,43 @@ public class JdbcAdminRbacService implements AdminRbacService {
 
   @Override
   public long countGroups() {
-    Long count = jdbcTemplate.queryForObject("SELECT count(*) FROM iam_groups", Long.class);
+    Long count = jdbcTemplate.queryForObject("SELECT count(*) FROM iam_group", Long.class);
     return count != null ? count : 0L;
   }
 
   @Override
   @Transactional
   public void createGroup(CreateGroupCommand command) {
-    String groupId = "group-" + UUID.randomUUID().toString().substring(0, 8);
-    jdbcTemplate.update(
-        "INSERT INTO iam_groups (id, name, description, tenant_id) VALUES (?, ?, ?, ?)",
+    UUID groupId = UUID.randomUUID();
+    UUID tenantUuid = toUuid(command.tenantId());
+    String code = command.name().trim().toUpperCase().replace(" ", "_");
+    Timestamp now = Timestamp.from(Instant.now());
+
+    jdbcTemplate.update("""
+        INSERT INTO iam_group (id, tenant_id, code, name, description, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
         groupId,
+        tenantUuid,
+        code,
         command.name().trim(),
         command.description(),
-        command.tenantId()
+        now,
+        now
     );
 
     if (command.roleIds() != null && !command.roleIds().isEmpty()) {
-      for (String roleId : command.roleIds()) {
-        jdbcTemplate.update(
-            "INSERT INTO iam_group_roles (group_id, role_id) VALUES (?, ?)",
+      for (String roleIdOrCode : command.roleIds()) {
+        UUID roleUuid = resolveRoleId(roleIdOrCode);
+        jdbcTemplate.update("""
+            INSERT INTO iam_group_role_assignment (id, group_id, role_id, tenant_id, inherit_children, created_at)
+            VALUES (?, ?, ?, ?, true, ?)
+            """,
+            UUID.randomUUID(),
             groupId,
-            roleId
+            roleUuid,
+            tenantUuid,
+            now
         );
       }
     }
@@ -358,16 +419,23 @@ public class JdbcAdminRbacService implements AdminRbacService {
   @Override
   @Transactional
   public void deleteGroup(String groupId, String tenantId) {
-    jdbcTemplate.update("DELETE FROM iam_groups WHERE id = ? AND tenant_id = ?", groupId, tenantId);
+    UUID gUuid = toUuid(groupId);
+    UUID tUuid = toUuid(tenantId);
+    if (tUuid != null) {
+      jdbcTemplate.update("DELETE FROM iam_group WHERE (id = ? OR code = ?) AND tenant_id = ?", gUuid, groupId, tUuid);
+    } else {
+      jdbcTemplate.update("DELETE FROM iam_group WHERE id = ? OR code = ?", gUuid, groupId);
+    }
   }
 
   @Override
   public Optional<GroupDetail> getGroup(String id) {
+    UUID gUuid = toUuid(id);
     String sql = """
-        SELECT g.id, g.name, g.description, g.tenant_id, gr.role_id
-        FROM iam_groups g
-        LEFT JOIN iam_group_roles gr ON g.id = gr.group_id
-        WHERE g.id = ?
+        SELECT g.id, g.code, g.name, g.description, g.tenant_id, gra.role_id
+        FROM iam_group g
+        LEFT JOIN iam_group_role_assignment gra ON g.id = gra.group_id
+        WHERE g.id = ? OR g.code = ?
         """;
     List<String> roleIds = new ArrayList<>();
     String[] meta = new String[4];
@@ -377,7 +445,7 @@ public class JdbcAdminRbacService implements AdminRbacService {
       found[0] = true;
       if (meta[0] == null) {
         meta[0] = rs.getString("id");
-        meta[1] = rs.getString("name");
+        meta[1] = rs.getString("name") != null ? rs.getString("name") : rs.getString("code");
         meta[2] = rs.getString("description");
         meta[3] = rs.getString("tenant_id");
       }
@@ -385,7 +453,7 @@ public class JdbcAdminRbacService implements AdminRbacService {
       if (rId != null && !roleIds.contains(rId)) {
         roleIds.add(rId);
       }
-    }, id);
+    }, gUuid, id);
 
     if (!found[0]) {
       return Optional.empty();
@@ -396,18 +464,32 @@ public class JdbcAdminRbacService implements AdminRbacService {
   @Override
   @Transactional
   public void updateGroup(UpdateGroupCommand command) {
+    UUID gUuid = toUuid(command.id());
+    Timestamp now = Timestamp.from(Instant.now());
     jdbcTemplate.update(
-        "UPDATE iam_groups SET description = ? WHERE id = ?",
+        "UPDATE iam_group SET description = ?, updated_at = ? WHERE id = ? OR code = ?",
         command.description(),
+        now,
+        gUuid,
         command.id()
     );
-    jdbcTemplate.update("DELETE FROM iam_group_roles WHERE group_id = ?", command.id());
+
+    UUID actualGroupId = resolveGroupId(command.id());
+    jdbcTemplate.update("DELETE FROM iam_group_role_assignment WHERE group_id = ?", actualGroupId);
+
     if (command.roleIds() != null && !command.roleIds().isEmpty()) {
-      for (String roleId : command.roleIds()) {
-        jdbcTemplate.update(
-            "INSERT INTO iam_group_roles (group_id, role_id) VALUES (?, ?)",
-            command.id(),
-            roleId
+      UUID tenantUuid = resolveGroupTenantId(actualGroupId);
+      for (String roleIdOrCode : command.roleIds()) {
+        UUID roleUuid = resolveRoleId(roleIdOrCode);
+        jdbcTemplate.update("""
+            INSERT INTO iam_group_role_assignment (id, group_id, role_id, tenant_id, inherit_children, created_at)
+            VALUES (?, ?, ?, ?, true, ?)
+            """,
+            UUID.randomUUID(),
+            actualGroupId,
+            roleUuid,
+            tenantUuid,
+            now
         );
       }
     }
@@ -416,35 +498,90 @@ public class JdbcAdminRbacService implements AdminRbacService {
   @Override
   @Transactional
   public void addGroupMember(String groupId, String username, String tenantId) {
+    UUID actualGroupId = resolveGroupId(groupId);
+    UUID userUuid = resolveUserId(username);
+    Timestamp now = Timestamp.from(Instant.now());
     jdbcTemplate.update(
         """
-        INSERT INTO iam_group_members (group_id, username, tenant_id)
+        INSERT INTO iam_user_group_membership (group_id, user_id, joined_at)
         SELECT ?, ?, ?
-        WHERE NOT EXISTS (SELECT 1 FROM iam_group_members WHERE group_id = ? AND username = ?)
+        WHERE NOT EXISTS (SELECT 1 FROM iam_user_group_membership WHERE group_id = ? AND user_id = ?)
         """,
-        groupId, username, tenantId, groupId, username
+        actualGroupId, userUuid, now, actualGroupId, userUuid
     );
   }
 
   @Override
   @Transactional
   public void removeGroupMember(String groupId, String username) {
+    UUID actualGroupId = resolveGroupId(groupId);
+    UUID userUuid = resolveUserId(username);
     jdbcTemplate.update(
-        "DELETE FROM iam_group_members WHERE group_id = ? AND username = ?",
-        groupId, username
+        "DELETE FROM iam_user_group_membership WHERE group_id = ? AND user_id = ?",
+        actualGroupId, userUuid
     );
   }
 
   @Override
   public List<String> getUserGroupNames(String username) {
+    UUID userUuid = resolveUserId(username);
     String sql = """
         SELECT g.name
-        FROM iam_groups g
-        JOIN iam_group_members gm ON g.id = gm.group_id
-        WHERE gm.username = ?
+        FROM iam_group g
+        JOIN iam_user_group_membership gm ON g.id = gm.group_id
+        WHERE gm.user_id = ?
         ORDER BY g.name ASC
         """;
-    return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString("name"), username);
+    return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString("name"), userUuid);
+  }
+
+  private String resolvePermissionCode(String permIdOrCode) {
+    UUID pUuid = toUuid(permIdOrCode);
+    List<String> codes = jdbcTemplate.query(
+        "SELECT code FROM iam_permission WHERE id = ? OR code = ?",
+        (rs, rowNum) -> rs.getString("code"),
+        pUuid, permIdOrCode
+    );
+    return codes.isEmpty() ? permIdOrCode : codes.getFirst();
+  }
+
+  private UUID resolveRoleId(String roleIdOrCode) {
+    UUID rUuid = toUuid(roleIdOrCode);
+    List<UUID> ids = jdbcTemplate.query(
+        "SELECT id FROM iam_role WHERE id = ? OR code = ? OR name = ?",
+        (rs, rowNum) -> (UUID) rs.getObject("id"),
+        rUuid, roleIdOrCode, roleIdOrCode
+    );
+    return ids.isEmpty() ? (rUuid != null ? rUuid : UUID.randomUUID()) : ids.getFirst();
+  }
+
+  private UUID resolveGroupId(String groupIdOrCode) {
+    UUID gUuid = toUuid(groupIdOrCode);
+    List<UUID> ids = jdbcTemplate.query(
+        "SELECT id FROM iam_group WHERE id = ? OR code = ? OR name = ?",
+        (rs, rowNum) -> (UUID) rs.getObject("id"),
+        gUuid, groupIdOrCode, groupIdOrCode
+    );
+    return ids.isEmpty() ? (gUuid != null ? gUuid : UUID.randomUUID()) : ids.getFirst();
+  }
+
+  private UUID resolveUserId(String username) {
+    UUID uUuid = toUuid(username);
+    List<UUID> ids = jdbcTemplate.query(
+        "SELECT id FROM iam_user WHERE id = ? OR email = ?",
+        (rs, rowNum) -> (UUID) rs.getObject("id"),
+        uUuid, username
+    );
+    return ids.isEmpty() ? (uUuid != null ? uUuid : toUuid(username)) : ids.getFirst();
+  }
+
+  private UUID resolveGroupTenantId(UUID groupId) {
+    List<UUID> ids = jdbcTemplate.query(
+        "SELECT tenant_id FROM iam_group WHERE id = ?",
+        (rs, rowNum) -> (UUID) rs.getObject("tenant_id"),
+        groupId
+    );
+    return ids.isEmpty() || ids.getFirst() == null ? UUID.fromString("00000000-0000-0000-0000-000000000001") : ids.getFirst();
   }
 
   private static final class RoleAggregation {

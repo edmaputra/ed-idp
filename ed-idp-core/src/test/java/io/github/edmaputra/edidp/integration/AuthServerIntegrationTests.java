@@ -158,7 +158,7 @@ public abstract class AuthServerIntegrationTests {
     assertThat(loginPageResponse.statusCode()).isEqualTo(HttpStatus.OK.value());
     String csrfToken = extractCsrfToken(loginPageResponse.body());
 
-    String loginRequestBody = "username=" + urlEncode("demo-user")
+    String loginRequestBody = "username=" + urlEncode("demo-user@example.com")
       + "&password=" + urlEncode("demo-password")
       + "&_csrf=" + urlEncode(csrfToken);
 
@@ -289,7 +289,7 @@ public abstract class AuthServerIntegrationTests {
     assertThat(loginPageResponse.statusCode()).isEqualTo(HttpStatus.OK.value());
     String csrfToken = extractCsrfToken(loginPageResponse.body());
 
-    String loginRequestBody = "username=" + urlEncode("demo-user")
+    String loginRequestBody = "username=" + urlEncode("demo-user@example.com")
         + "&password=" + urlEncode("demo-password")
         + "&_csrf=" + urlEncode(csrfToken);
 

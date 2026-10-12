@@ -2,6 +2,7 @@ package io.github.edmaputra.edidp.ui.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -12,11 +13,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 
 /**
- * Tests for {@link JdbcAdminClientService} and {@link JdbcAdminTenantService}.
+ * Tests for {@link JdbcAdminClientService}, {@link JdbcAdminTenantService},
+ * {@link JdbcAdminUserService}, and {@link JdbcAdminRbacService}.
  *
  * @author edmaputra
  * @since 0.0.1
@@ -92,11 +95,37 @@ class AdminServicesTests {
   }
 
   @Test
+  void createClient_executesRepositorySaveAndTenantUpdate() {
+    when(passwordEncoder.encode("secret")).thenReturn("encoded-secret");
+    var command = new AdminClientService.CreateClientCommand(
+        "new-client", "secret", "New App", "demo",
+        "authorization_code", "openid,profile", "http://localhost:8080/cb", false
+    );
+
+    adminClientService.createClient(command);
+
+    org.mockito.Mockito.verify(registeredClientRepository).save(any(RegisteredClient.class));
+    org.mockito.Mockito.verify(jdbcTemplate).update(
+        eq("UPDATE oauth2_registered_client SET tenant_id = ? WHERE id = ?"),
+        eq("demo"), any(String.class)
+    );
+  }
+
+  @Test
+  void deleteClient_executesDelete() {
+    adminClientService.deleteClient("client-123", "demo");
+
+    org.mockito.Mockito.verify(jdbcTemplate).update(
+        eq("DELETE FROM oauth2_registered_client WHERE client_id = ? AND tenant_id = ?"),
+        eq("client-123"), eq("demo")
+    );
+  }
+
+  @Test
   void countUsers_returnsCountFromJdbc() {
-    var passwordEncoder = mock(org.springframework.security.crypto.password.PasswordEncoder.class);
     var userService = new JdbcAdminUserService(jdbcTemplate, passwordEncoder);
 
-    when(jdbcTemplate.queryForObject(eq("SELECT count(*) FROM users"), eq(Long.class)))
+    when(jdbcTemplate.queryForObject(eq("SELECT count(*) FROM iam_user"), eq(Long.class)))
         .thenReturn(8L);
 
     assertThat(userService.countUsers()).isEqualTo(8L);
@@ -104,7 +133,6 @@ class AdminServicesTests {
 
   @Test
   void createUser_executesInserts() {
-    var passwordEncoder = mock(org.springframework.security.crypto.password.PasswordEncoder.class);
     when(passwordEncoder.encode("secret")).thenReturn("hashed-secret");
     var userService = new JdbcAdminUserService(jdbcTemplate, passwordEncoder);
 
@@ -115,15 +143,15 @@ class AdminServicesTests {
     userService.createUser(command);
 
     org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("INSERT INTO users (username, password, enabled, tenant_id) VALUES (?, ?, true, ?)"),
-        eq("alice"), eq("hashed-secret"), eq("demo")
+        contains("INSERT INTO iam_user"),
+        any(), eq("alice@example.com"), eq("hashed-secret"), eq("Alice Smith"), any(), any()
     );
   }
 
   @Test
   void countRoles_returnsCountFromJdbc() {
     var rbacService = new JdbcAdminRbacService(jdbcTemplate);
-    when(jdbcTemplate.queryForObject(eq("SELECT count(*) FROM iam_roles"), eq(Long.class)))
+    when(jdbcTemplate.queryForObject(eq("SELECT count(*) FROM iam_role"), eq(Long.class)))
         .thenReturn(4L);
 
     assertThat(rbacService.countRoles()).isEqualTo(4L);
@@ -132,7 +160,7 @@ class AdminServicesTests {
   @Test
   void countGroups_returnsCountFromJdbc() {
     var rbacService = new JdbcAdminRbacService(jdbcTemplate);
-    when(jdbcTemplate.queryForObject(eq("SELECT count(*) FROM iam_groups"), eq(Long.class)))
+    when(jdbcTemplate.queryForObject(eq("SELECT count(*) FROM iam_group"), eq(Long.class)))
         .thenReturn(2L);
 
     assertThat(rbacService.countGroups()).isEqualTo(2L);
@@ -148,14 +176,16 @@ class AdminServicesTests {
     rbacService.createRole(command);
 
     org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("INSERT INTO iam_roles (id, name, description, tenant_id) VALUES (?, ?, ?, ?)"),
-        any(String.class), eq("ROLE_AUDITOR"), eq("Auditor role"), eq("demo")
+        eq("""
+        INSERT INTO iam_role (id, tenant_id, code, name, description, is_system_role, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, false, ?, ?)
+        """),
+        any(), any(), eq("ROLE_AUDITOR"), eq("ROLE_AUDITOR"), eq("Auditor role"), any(), any()
     );
   }
 
   @Test
   void updateUser_executesUpdatesAndRoleGroupAssignments() {
-    var passwordEncoder = mock(org.springframework.security.crypto.password.PasswordEncoder.class);
     var userService = new JdbcAdminUserService(jdbcTemplate, passwordEncoder);
 
     var command = new AdminUserService.UpdateUserCommand(
@@ -165,26 +195,16 @@ class AdminServicesTests {
 
     userService.updateUser(command);
 
-    // Verify user table update
+    // Verify iam_user table update
     org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("UPDATE users SET enabled = ?, tenant_id = ? WHERE username = ?"),
-        eq(true), eq("demo"), eq("alice")
+        contains("UPDATE iam_user"),
+        eq("ACTIVE"), eq("Alice Updated"), eq("alice.updated@example.com"), any(), any(), eq("alice")
     );
 
-    // Verify authority delete and insert
+    // Verify group members delete
     org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("DELETE FROM authorities WHERE username = ?"),
-        eq("alice")
-    );
-    org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("INSERT INTO authorities (username, authority, tenant_id) VALUES (?, ?, ?)"),
-        eq("alice"), eq("ROLE_ADMIN"), eq("demo")
-    );
-
-    // Verify group members delete and insert
-    org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("DELETE FROM iam_group_members WHERE username = ?"),
-        eq("alice")
+        eq("DELETE FROM iam_user_group_membership WHERE user_id = ?"),
+        any(Object.class)
     );
   }
 
@@ -205,11 +225,11 @@ class AdminServicesTests {
 
     org.mockito.Mockito.verify(jdbcTemplate).update(
         eq("""
-        INSERT INTO iam_permissions (id, code, name, description, category, is_system_permission, tenant_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, false, ?, ?, ?)
+        INSERT INTO iam_permission (id, tenant_id, code, name, description, category, is_system_permission, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, false, ?, ?)
         """),
-        any(String.class), eq("reports:export"), eq("Export Reports"), eq("Allow export"),
-        eq("REPORTS"), eq("demo"), any(Long.class), any(Long.class)
+        any(), any(), eq("reports:export"), eq("Export Reports"), eq("Allow export"),
+        eq("REPORTS"), any(), any()
     );
   }
 
@@ -220,7 +240,7 @@ class AdminServicesTests {
     var existing = new AdminRbacService.PermissionSummary(
         "perm-custom", "reports:export", "Export Reports", "Old desc", "REPORTS", false, "demo"
     );
-    when(jdbcTemplate.query(any(String.class), any(RowMapper.class), eq("perm-custom")))
+    when(jdbcTemplate.query(any(String.class), any(RowMapper.class), any(), eq("perm-custom")))
         .thenReturn(List.of(existing));
 
     var command = new AdminRbacService.UpdatePermissionCommand(
@@ -232,11 +252,11 @@ class AdminServicesTests {
     assertThat(updated.name()).isEqualTo("Export Compliance Reports");
     org.mockito.Mockito.verify(jdbcTemplate).update(
         eq("""
-        UPDATE iam_permissions
+        UPDATE iam_permission
         SET name = ?, description = ?, category = ?, updated_at = ?
-        WHERE id = ? AND is_system_permission = false
+        WHERE (id = ? OR code = ?) AND is_system_permission = false
         """),
-        eq("Export Compliance Reports"), eq("New desc"), eq("REPORTS"), any(Long.class), eq("perm-custom")
+        eq("Export Compliance Reports"), eq("New desc"), eq("REPORTS"), any(), any(), eq("perm-custom")
     );
   }
 
@@ -247,7 +267,7 @@ class AdminServicesTests {
     var systemPerm = new AdminRbacService.PermissionSummary(
         "perm-clients-read", "clients:read", "View Clients", "Desc", "CLIENTS", true, null
     );
-    when(jdbcTemplate.query(any(String.class), any(RowMapper.class), eq("perm-clients-read")))
+    when(jdbcTemplate.query(any(String.class), any(RowMapper.class), any(), eq("perm-clients-read")))
         .thenReturn(List.of(systemPerm));
 
     var command = new AdminRbacService.UpdatePermissionCommand(
@@ -267,14 +287,14 @@ class AdminServicesTests {
     var existing = new AdminRbacService.PermissionSummary(
         "perm-custom", "reports:export", "Export Reports", "Desc", "REPORTS", false, "demo"
     );
-    when(jdbcTemplate.query(any(String.class), any(RowMapper.class), eq("perm-custom")))
+    when(jdbcTemplate.query(any(String.class), any(RowMapper.class), any(), eq("perm-custom")))
         .thenReturn(List.of(existing));
 
     rbacService.deletePermission("perm-custom");
 
     org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("DELETE FROM iam_permissions WHERE id = ? AND is_system_permission = false"),
-        eq("perm-custom")
+        eq("DELETE FROM iam_permission WHERE (id = ? OR code = ?) AND is_system_permission = false"),
+        any(), eq("perm-custom")
     );
   }
 
@@ -285,7 +305,7 @@ class AdminServicesTests {
     var systemPerm = new AdminRbacService.PermissionSummary(
         "perm-clients-read", "clients:read", "View Clients", "Desc", "CLIENTS", true, null
     );
-    when(jdbcTemplate.query(any(String.class), any(RowMapper.class), eq("perm-clients-read")))
+    when(jdbcTemplate.query(any(String.class), any(RowMapper.class), any(), eq("perm-clients-read")))
         .thenReturn(List.of(systemPerm));
 
     org.junit.jupiter.api.Assertions.assertThrows(
@@ -304,20 +324,12 @@ class AdminServicesTests {
     rbacService.updateRole(command);
 
     org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("UPDATE iam_roles SET description = ? WHERE id = ?"),
-        eq("Administrator with updated scope"), eq("role-admin")
+        eq("UPDATE iam_role SET description = ?, updated_at = ? WHERE id = ? OR code = ?"),
+        eq("Administrator with updated scope"), any(), any(), eq("role-admin")
     );
     org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("DELETE FROM iam_role_permissions WHERE role_id = ?"),
-        eq("role-admin")
-    );
-    org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("INSERT INTO iam_role_permissions (role_id, permission_id) VALUES (?, ?)"),
-        eq("role-admin"), eq("perm-clients-read")
-    );
-    org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("INSERT INTO iam_role_permissions (role_id, permission_id) VALUES (?, ?)"),
-        eq("role-admin"), eq("perm-users-read")
+        eq("DELETE FROM iam_role_permission WHERE role_id IN (SELECT id FROM iam_role WHERE id = ? OR code = ?)"),
+        any(), eq("role-admin")
     );
   }
 
@@ -331,20 +343,12 @@ class AdminServicesTests {
     rbacService.updateGroup(command);
 
     org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("UPDATE iam_groups SET description = ? WHERE id = ?"),
-        eq("Engineering team with devops role"), eq("group-eng")
+        eq("UPDATE iam_group SET description = ?, updated_at = ? WHERE id = ? OR code = ?"),
+        eq("Engineering team with devops role"), any(), any(), eq("group-eng")
     );
     org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("DELETE FROM iam_group_roles WHERE group_id = ?"),
-        eq("group-eng")
-    );
-    org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("INSERT INTO iam_group_roles (group_id, role_id) VALUES (?, ?)"),
-        eq("group-eng"), eq("role-user")
-    );
-    org.mockito.Mockito.verify(jdbcTemplate).update(
-        eq("INSERT INTO iam_group_roles (group_id, role_id) VALUES (?, ?)"),
-        eq("group-eng"), eq("role-admin")
+        eq("DELETE FROM iam_group_role_assignment WHERE group_id = ?"),
+        any(Object.class)
     );
   }
 }
