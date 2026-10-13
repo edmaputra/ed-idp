@@ -152,6 +152,54 @@ class TenantContextFilterTests {
         .isEqualTo("https://idp.example.com/oauth2/introspect");
   }
 
+  @Test
+  void whenTenantNotPresent_passesThroughWithoutTenantContext() throws Exception {
+    TenantContextFilter filter = new TenantContextFilter(
+        false,
+        false,
+        false,
+        false,
+        "X-Tenant-ID",
+        "127.0.0.1");
+
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/health");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    AtomicReference<Boolean> called = new AtomicReference<>(false);
+
+    filter.doFilter(request, response, (req, res) -> {
+      called.set(true);
+      assertThat(TenantContext.getCurrentTenant()).isEmpty();
+    });
+
+    assertThat(called.get()).isTrue();
+  }
+
+  @Test
+  void whenCheckedExceptionThrownInChain_wrapsInServletException() {
+    TenantContextFilter filter = new TenantContextFilter(
+        true,
+        true,
+        false,
+        false,
+        "X-Tenant-ID",
+        "127.0.0.1");
+
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/t/demo/oauth2/token");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    org.assertj.core.api.Assertions.assertThatThrownBy(() -> {
+      filter.doFilter(request, response, (req, res) -> {
+        sneakyThrow(new Exception("Checked failure"));
+      });
+    }).isInstanceOf(ServletException.class)
+        .hasCauseInstanceOf(Exception.class);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Throwable> void sneakyThrow(Throwable e) throws E {
+    throw (E) e;
+  }
+
   private static final class CapturingFilterChain implements FilterChain {
 
     private final AtomicReference<String> resolvedTenant;

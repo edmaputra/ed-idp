@@ -1,9 +1,13 @@
 package io.github.edmaputra.edidp.ui.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -313,13 +317,133 @@ class AdminControllersTests {
   void updatePermission_executesAndReturnsTable() throws Exception {
     when(adminRbacService.listPermissions()).thenReturn(List.of());
 
-    rbacMockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/admin/rbac/permissions/perm-1")
+    rbacMockMvc.perform(post("/admin/rbac/permissions/perm-1")
             .param("name", "Updated Export")
             .param("description", "New Desc")
             .param("category", "REPORTS"))
         .andExpect(status().isOk())
         .andExpect(view().name("admin/rbac/list :: permissionsCatalogBody"));
 
-    org.mockito.Mockito.verify(adminRbacService).updatePermission(any(AdminRbacService.UpdatePermissionCommand.class));
+    verify(adminRbacService).updatePermission(any(AdminRbacService.UpdatePermissionCommand.class));
+  }
+
+  @Test
+  void clientCreateAndDelete_executesAndReturnsFragment() throws Exception {
+    when(adminClientService.listClients()).thenReturn(List.of());
+
+    clientMockMvc.perform(post("/admin/clients")
+            .param("clientId", "new-client")
+            .param("clientSecret", "secret")
+            .param("clientName", "New Client")
+            .param("tenantId", "demo")
+            .param("grantTypes", "authorization_code")
+            .param("scopes", "openid,profile")
+            .param("redirectUris", "http://localhost/cb")
+            .param("requirePkce", "true"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/clients/list :: clientTableBody"));
+
+    verify(adminClientService).createClient(any(AdminClientService.CreateClientCommand.class));
+
+    clientMockMvc.perform(post("/admin/clients/new-client/delete")
+            .param("tenantId", "demo"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/clients/list :: clientTableBody"));
+
+    verify(adminClientService).deleteClient("new-client", "demo");
+  }
+
+  @Test
+  void userCreateAndToggleStatus_executesAndReturnsFragment() throws Exception {
+    when(adminUserService.listUsers()).thenReturn(List.of());
+
+    userMockMvc.perform(post("/admin/users")
+            .param("username", "bob")
+            .param("password", "secret")
+            .param("fullName", "Bob")
+            .param("email", "bob@example.com")
+            .param("department", "Eng")
+            .param("tenantId", "demo")
+            .param("role", "ROLE_USER"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/users/list :: userTableBody"));
+
+    verify(adminUserService).createUser(any(AdminUserService.CreateUserCommand.class));
+
+    userMockMvc.perform(post("/admin/users/bob/toggle-status")
+            .param("enabled", "true"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/users/list :: userTableBody"));
+
+    verify(adminUserService).setUserEnabled("bob", false);
+
+    // Edit user modal when user not found redirects
+    when(adminUserService.getUser("unknown")).thenReturn(java.util.Optional.empty());
+    userMockMvc.perform(get("/admin/users/unknown/edit"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/admin/users"));
+  }
+
+  @Test
+  void rbacRolesAndGroupsActions_executeSuccessfully() throws Exception {
+    when(adminRbacService.listRoles()).thenReturn(List.of());
+    when(adminRbacService.listGroups()).thenReturn(List.of());
+
+    // rolesTable
+    rbacMockMvc.perform(get("/admin/rbac/roles/table"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/rbac/list :: rolesTableBody"));
+
+    // createRole
+    rbacMockMvc.perform(post("/admin/rbac/roles")
+            .param("name", "AUDITOR")
+            .param("description", "Auditor")
+            .param("tenantId", "demo")
+            .param("permissions", "perm-1"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/rbac/list :: rolesTableBody"));
+
+    verify(adminRbacService).createRole(any(AdminRbacService.CreateRoleCommand.class));
+
+    // deleteRole
+    rbacMockMvc.perform(delete("/admin/rbac/roles/role-1")
+            .param("tenantId", "demo"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/rbac/list :: rolesTableBody"));
+
+    verify(adminRbacService).deleteRole("role-1", "demo");
+
+    // groupsTable
+    rbacMockMvc.perform(get("/admin/rbac/groups/table"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/rbac/list :: groupsTableBody"));
+
+    // createGroup
+    rbacMockMvc.perform(post("/admin/rbac/groups")
+            .param("name", "Security")
+            .param("description", "Sec team")
+            .param("tenantId", "demo")
+            .param("roleIds", "role-1"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/rbac/list :: groupsTableBody"));
+
+    verify(adminRbacService).createGroup(any(AdminRbacService.CreateGroupCommand.class));
+
+    // deleteGroup
+    rbacMockMvc.perform(delete("/admin/rbac/groups/group-1")
+            .param("tenantId", "demo"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/rbac/list :: groupsTableBody"));
+
+    verify(adminRbacService).deleteGroup("group-1", "demo");
+
+    // addGroupMember
+    rbacMockMvc.perform(post("/admin/rbac/groups/group-1/members")
+            .param("username", "alice")
+            .param("tenantId", "demo"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/rbac/list :: groupsTableBody"));
+
+    verify(adminRbacService).addGroupMember("group-1", "alice", "demo");
   }
 }
