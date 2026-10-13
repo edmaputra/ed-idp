@@ -1,5 +1,7 @@
 package io.github.edmaputra.edidp.consent;
 
+import io.github.edmaputra.iam.domain.security.RedirectUriPolicy;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -53,6 +55,12 @@ public class OAuth2AuthorizationConsentController {
     if (registeredClient == null) {
       log.warn("Consent request for unknown client: {}", clientId);
       model.addAttribute("error", "Unknown client");
+      return "consent-error";
+    }
+
+    if (!isAllowedRedirectUri(registeredClient, redirectUri)) {
+      log.warn("Invalid or unpermitted redirect_uri: {} for client: {}", redirectUri, clientId);
+      model.addAttribute("error", "Invalid or unpermitted redirect_uri");
       return "consent-error";
     }
 
@@ -125,6 +133,11 @@ public class OAuth2AuthorizationConsentController {
       return "consent-error";
     }
 
+    if (!isAllowedRedirectUri(registeredClient, redirectUri)) {
+      log.warn("Invalid or unpermitted redirect_uri on consent approval: {} for client: {}", redirectUri, clientId);
+      return "consent-error";
+    }
+
     String registeredClientId = registeredClient.getId();
 
     Set<String> approvedSet = approvedScopes != null && approvedScopes.length > 0
@@ -162,5 +175,38 @@ public class OAuth2AuthorizationConsentController {
     }
 
     return "redirect:" + redirectBuilder.encode().build().toUriString();
+  }
+
+  private boolean isAllowedRedirectUri(RegisteredClient registeredClient, String redirectUri) {
+    if (redirectUri == null || redirectUri.isBlank()) {
+      return false;
+    }
+
+    String trimmed = redirectUri.trim();
+    String lower = trimmed.toLowerCase();
+    if (lower.startsWith("javascript:") || lower.startsWith("data:") || lower.startsWith("vbscript:")) {
+      return false;
+    }
+    if (trimmed.startsWith("//") || trimmed.startsWith("/\\") || trimmed.contains("\\")) {
+      return false;
+    }
+
+    Set<String> configuredUris = registeredClient.getRedirectUris();
+    if (configuredUris.contains(trimmed)) {
+      return true;
+    }
+
+    try {
+      URI uri = URI.create(trimmed);
+      String host = uri.getHost();
+      if (host != null && !host.isBlank()) {
+        RedirectUriPolicy policy = RedirectUriPolicy.of(configuredUris);
+        return policy.isAllowedHost(host);
+      }
+    } catch (Exception ex) {
+      log.debug("Error parsing redirect_uri {}: {}", trimmed, ex.getMessage());
+    }
+
+    return false;
   }
 }

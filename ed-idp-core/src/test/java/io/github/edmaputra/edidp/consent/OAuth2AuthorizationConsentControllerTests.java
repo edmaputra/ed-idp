@@ -217,4 +217,53 @@ class OAuth2AuthorizationConsentControllerTests {
 
     assertThat(view).isEqualTo("consent-error");
   }
+
+  @Test
+  void consentFormWithUnpermittedRedirectUriReturnsConsentError() {
+    when(authentication.getName()).thenReturn("demo-user");
+    RegisteredClient client = RegisteredClient.withId("uuid-123")
+        .clientId("demo-client")
+        .authorizationGrantType(org.springframework.security.oauth2.core.AuthorizationGrantType.AUTHORIZATION_CODE)
+        .redirectUri("http://client.example.com/callback")
+        .scope("openid")
+        .build();
+    when(registeredClientRepository.findByClientId("demo-client")).thenReturn(client);
+
+    Model model = new ConcurrentModel();
+    String view = controller.consentForm(
+        "demo-client",
+        "openid",
+        null,
+        "http://attacker.com/steal-code",
+        "state123",
+        authentication,
+        model);
+
+    assertThat(view).isEqualTo("consent-error");
+    assertThat(model.getAttribute("error")).isEqualTo("Invalid or unpermitted redirect_uri");
+  }
+
+  @Test
+  void approveConsentWithUnpermittedRedirectUriReturnsConsentError() {
+    when(authentication.getName()).thenReturn("demo-user");
+    RegisteredClient client = RegisteredClient.withId("uuid-123")
+        .clientId("demo-client")
+        .authorizationGrantType(org.springframework.security.oauth2.core.AuthorizationGrantType.AUTHORIZATION_CODE)
+        .redirectUri("http://client.example.com/callback")
+        .scope("openid")
+        .build();
+    when(registeredClientRepository.findByClientId("demo-client")).thenReturn(client);
+
+    String view = controller.approveConsent(
+        "demo-client",
+        "http://attacker.com/steal-code",
+        "openid",
+        "state123",
+        new String[]{"openid"},
+        "approve",
+        authentication);
+
+    assertThat(view).isEqualTo("consent-error");
+    verify(authorizationConsentService, never()).approveConsent(any());
+  }
 }

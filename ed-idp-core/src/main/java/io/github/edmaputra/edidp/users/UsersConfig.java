@@ -1,5 +1,8 @@
 package io.github.edmaputra.edidp.users;
 
+import io.github.edmaputra.iam.domain.security.DefaultPasswordValidator;
+import io.github.edmaputra.iam.domain.security.PasswordPolicy;
+import io.github.edmaputra.iam.domain.security.PasswordValidator;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
@@ -8,6 +11,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,11 +28,28 @@ public class UsersConfig {
   private static final String DEMO_TENANT = "demo";
 
   @Bean
+  @Primary
+  public PasswordValidator passwordValidator() {
+    PasswordPolicy policy = new PasswordPolicy(
+        8,
+        128,
+        0,
+        1,
+        0,
+        0,
+        null,
+        null,
+        false);
+    return new DefaultPasswordValidator(policy);
+  }
+
+  @Bean
   @Order(2)
   @ConditionalOnProperty(name = "edidp.seeding.enabled", havingValue = "true", matchIfMissing = true)
   CommandLineRunner demoIamUserSeeder(
       JdbcTemplate jdbcTemplate,
-      PasswordEncoder passwordEncoder) {
+      PasswordEncoder passwordEncoder,
+      PasswordValidator passwordValidator) {
     return args -> {
       Timestamp now = Timestamp.from(Instant.now());
 
@@ -36,8 +57,10 @@ public class UsersConfig {
       Long demoCount = jdbcTemplate.queryForObject(
           "SELECT count(*) FROM iam_user WHERE LOWER(email) = LOWER('demo-user@example.com')", Long.class);
       if (demoCount == null || demoCount == 0) {
+        String rawDemoPassword = "demo-password";
+        passwordValidator.validatePassword(rawDemoPassword, "demo-user");
         UUID demoUserId = UUID.randomUUID();
-        String encodedPassword = passwordEncoder.encode("demo-password");
+        String encodedPassword = passwordEncoder.encode(rawDemoPassword);
         jdbcTemplate.update("""
             INSERT INTO iam_user (id, email, password_hash, full_name, status, is_platform_superadmin, created_at, updated_at)
             VALUES (?, 'demo-user@example.com', ?, 'Demo User', 'ACTIVE', false, ?, ?)
@@ -56,8 +79,10 @@ public class UsersConfig {
       Long adminCount = jdbcTemplate.queryForObject(
           "SELECT count(*) FROM iam_user WHERE LOWER(email) = LOWER('admin@example.com')", Long.class);
       if (adminCount == null || adminCount == 0) {
+        String rawAdminPassword = "admin-password";
+        passwordValidator.validatePassword(rawAdminPassword, "admin");
         UUID adminUserId = UUID.randomUUID();
-        String encodedPassword = passwordEncoder.encode("admin-password");
+        String encodedPassword = passwordEncoder.encode(rawAdminPassword);
         jdbcTemplate.update("""
             INSERT INTO iam_user (id, email, password_hash, full_name, status, is_platform_superadmin, created_at, updated_at)
             VALUES (?, 'admin@example.com', ?, 'Administrator', 'ACTIVE', true, ?, ?)
