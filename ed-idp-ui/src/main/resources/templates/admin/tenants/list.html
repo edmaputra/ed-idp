@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/fragments/layout :: head('Tenants')}"></head>
+<body>
+
+<div class="layout-container">
+  <aside th:replace="~{admin/fragments/layout :: sidebar('tenants')}"></aside>
+
+  <div class="main-content">
+    <header th:replace="~{admin/fragments/layout :: topbar('Tenants Management')}"></header>
+
+    <main class="page-body">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <div>
+            <h3 style="font-size: 1.1rem; font-weight: 600;">Active Tenants</h3>
+            <p style="color: var(--text-muted); font-size: 0.875rem;">Multi-tenant environments configured in the system.</p>
+          </div>
+          <div>
+            <button class="btn btn-secondary"
+                    th:attr="hx-get=@{${basePath} + '/tenants/table'}"
+                    hx-target="#tenants-table"
+                    hx-swap="outerHTML"
+                    hx-on::after-request="if(event.detail.successful) showToast('Tenants table refreshed', 'info')">
+              <span>🔄</span> Refresh Table
+            </button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="table" id="tenants-table" th:fragment="tenantTableBody">
+            <thead>
+              <tr>
+                <th>Tenant Identifier</th>
+                <th>Registered Clients</th>
+                <th>Issuer URL Pattern</th>
+              </tr>
+            </thead>
+            <tbody id="tenants-tbody">
+              <tr th:if="${#lists.isEmpty(tenants)}">
+                <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                  No active tenants found.
+                </td>
+              </tr>
+              <tr th:each="tenant : ${tenants}">
+                <td>
+                  <span class="badge" style="font-size: 0.85rem;" th:text="${tenant.tenantId}">demo</span>
+                </td>
+                <td th:text="${tenant.clientCount} + ' client(s)'">1 client(s)</td>
+                <td>
+                  <code style="font-size: 0.85rem; color: #475569;" th:text="'/t/' + ${tenant.tenantId} + '/...'">/t/demo/...</code>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div th:replace="~{admin/fragments/layout :: toastContainer}"></div>
+<script th:replace="~{admin/fragments/layout :: toastScript}"></script>
+
+</body>
+</html>

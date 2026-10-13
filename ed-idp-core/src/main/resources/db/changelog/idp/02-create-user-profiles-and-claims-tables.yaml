@@ -1,0 +1,123 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2026101202-create-user-profiles-and-claims-tables
+      author: edmaputra
+      changes:
+        - createTable:
+            tableName: user_profiles
+            columns:
+              - column:
+                  name: username
+                  type: VARCHAR(50)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: full_name
+                  type: VARCHAR(150)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(254)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email_verified
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: locale
+                  type: VARCHAR(35)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: zoneinfo
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: department
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tenant
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: user_profile_attributes
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: username
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_user_profile_attributes_profile
+                    references: user_profiles(username)
+              - column:
+                  name: tenant_id
+                  type: VARCHAR(100)
+                  defaultValue: demo
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attribute_key
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attribute_value
+                  type: VARCHAR(1000)
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: user_profile_attributes
+            indexName: ix_user_profile_attributes_tenant
+            columns:
+              - column:
+                  name: tenant_id
+        - addUniqueConstraint:
+            tableName: user_profile_attributes
+            columnNames: username, attribute_key
+            constraintName: ux_user_profile_attribute_key
+        - createTable:
+            tableName: claim_inclusion_rules
+            columns:
+              - column:
+                  name: attribute_key
+                  type: VARCHAR(120)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: tenant_id
+                  type: VARCHAR(100)
+                  defaultValue: demo
+                  constraints:
+                    nullable: false
+              - column:
+                  name: targets
+                  type: VARCHAR(300)
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: claim_inclusion_rules
+            indexName: ix_claim_inclusion_rules_tenant
+            columns:
+              - column:
+                  name: tenant_id

@@ -11,6 +11,7 @@
 	<groupId>io.github.edmaputra</groupId>
 	<artifactId>ed-idp</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
 	<name>ed-idp</name>
 	<description>ed-idp - Multi-tenant OAuth 2.1 and OpenID Connect Identity Provider</description>
 	<url/>
@@ -26,211 +27,118 @@
 		<tag/>
 		<url/>
 	</scm>
+
+	<modules>
+		<module>ed-idp-core</module>
+		<module>ed-idp-ui</module>
+	</modules>
+
 	<properties>
 		<java.version>25</java.version>
-		<ed-iam.version>0.9.0</ed-iam.version>
+		<spring-modulith.version>2.1.0</spring-modulith.version>
+		<ed-iam.version>0.10.0</ed-iam.version>
+		<jacoco.version>0.8.15</jacoco.version>
 	</properties>
+
 	<dependencyManagement>
 		<dependencies>
+			<dependency>
+				<groupId>io.github.edmaputra</groupId>
+				<artifactId>ed-iam-management</artifactId>
+				<version>${ed-iam.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>io.github.edmaputra</groupId>
 				<artifactId>ed-iam-core</artifactId>
 				<version>${ed-iam.version}</version>
 			</dependency>
 			<dependency>
+				<groupId>io.github.edmaputra</groupId>
+				<artifactId>ed-idp-core</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.github.edmaputra</groupId>
+				<artifactId>ed-idp-ui</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
 				<groupId>org.springframework.modulith</groupId>
 				<artifactId>spring-modulith-bom</artifactId>
-				<version>2.1.0</version>
+				<version>${spring-modulith.version}</version>
 				<scope>import</scope>
 				<type>pom</type>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-	<dependencies>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-actuator</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-oauth2-authorization-server</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-jdbc</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-flyway</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>io.github.edmaputra</groupId>
-			<artifactId>ed-iam-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webmvc-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-restclient</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.modulith</groupId>
-			<artifactId>spring-modulith-starter-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.modulith</groupId>
-			<artifactId>spring-modulith-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-	</dependencies>
 
 	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>default-compile</id>
-						<phase>compile</phase>
-						<goals>
-							<goal>compile</goal>
-						</goals>
-						<configuration>
-							<annotationProcessorPaths>
-								<path>
-									<groupId>org.projectlombok</groupId>
-									<artifactId>lombok</artifactId>
-									<version>${lombok.version}</version>
-								</path>
-							</annotationProcessorPaths>
-						</configuration>
-					</execution>
-					<execution>
-						<id>default-testCompile</id>
-						<phase>test-compile</phase>
-						<goals>
-							<goal>testCompile</goal>
-						</goals>
-						<configuration>
-							<annotationProcessorPaths>
-								<path>
-									<groupId>org.projectlombok</groupId>
-									<artifactId>lombok</artifactId>
-									<version>${lombok.version}</version>
-								</path>
-							</annotationProcessorPaths>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.jacoco</groupId>
-				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.15</version>
-				<executions>
-					<execution>
-						<id>prepare-unit-test-agent</id>
-						<goals>
-							<goal>prepare-agent</goal>
-						</goals>
-					</execution>
-					<execution>
-						<id>prepare-it-agent</id>
-						<goals>
-							<goal>prepare-agent-integration</goal>
-						</goals>
-					</execution>
-					<execution>
-						<id>report-it</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>report-integration</goal>
-						</goals>
-					</execution>
-					<execution>
-						<id>report-unit</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>report</goal>
-						</goals>
-					</execution>
-					<execution>
-						<id>merge-results</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>merge</goal>
-						</goals>
-						<configuration>
-							<fileSets>
-								<fileSet>
-									<directory>${project.build.directory}</directory>
-									<includes>
-										<include>*.exec</include>
-									</includes>
-								</fileSet>
-							</fileSets>
-							<destFile>${project.build.directory}/jacoco-merged.exec</destFile>
-						</configuration>
-					</execution>
-					<execution>
-						<id>report-merged</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>report</goal>
-						</goals>
-						<configuration>
-							<dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
-							<outputDirectory>${project.reporting.outputDirectory}/jacoco-merged</outputDirectory>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.jacoco</groupId>
+					<artifactId>jacoco-maven-plugin</artifactId>
+					<version>${jacoco.version}</version>
+					<executions>
+						<execution>
+							<id>prepare-unit-test-agent</id>
+							<goals>
+								<goal>prepare-agent</goal>
+							</goals>
+						</execution>
+						<execution>
+							<id>prepare-it-agent</id>
+							<goals>
+								<goal>prepare-agent-integration</goal>
+							</goals>
+						</execution>
+						<execution>
+							<id>report-it</id>
+							<phase>verify</phase>
+							<goals>
+								<goal>report-integration</goal>
+							</goals>
+						</execution>
+						<execution>
+							<id>report-unit</id>
+							<phase>verify</phase>
+							<goals>
+								<goal>report</goal>
+							</goals>
+						</execution>
+						<execution>
+							<id>merge-results</id>
+							<phase>verify</phase>
+							<goals>
+								<goal>merge</goal>
+							</goals>
+							<configuration>
+								<fileSets>
+									<fileSet>
+										<directory>${project.build.directory}</directory>
+										<includes>
+											<include>*.exec</include>
+										</includes>
+									</fileSet>
+								</fileSets>
+								<destFile>${project.build.directory}/jacoco-merged.exec</destFile>
+							</configuration>
+						</execution>
+						<execution>
+							<id>report-merged</id>
+							<phase>verify</phase>
+							<goals>
+								<goal>report</goal>
+							</goals>
+							<configuration>
+								<dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
+								<outputDirectory>${project.reporting.outputDirectory}/jacoco-merged</outputDirectory>
+							</configuration>
+						</execution>
+					</executions>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 	</build>
 
 </project>

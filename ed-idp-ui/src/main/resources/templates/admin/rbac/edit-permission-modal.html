@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="editPermissionModal" class="modal-backdrop" onclick="if(event.target === this) document.getElementById('rbac-modal').innerHTML = ''">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 style="font-size: 1.15rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+        <span>✏️</span> Edit Permission: <span th:text="${permission.code}" style="color: var(--primary); font-family: monospace;">clients:read</span>
+      </h3>
+      <button type="button" class="btn-close" onclick="document.getElementById('rbac-modal').innerHTML = ''" aria-label="Close">&times;</button>
+    </div>
+
+    <form th:attr="hx-post=@{${basePath} + '/rbac/permissions/' + ${permission.id}}"
+          hx-target="#permissions-catalog"
+          hx-swap="outerHTML"
+          hx-on::after-request="if(event.detail.successful) { document.getElementById('rbac-modal').innerHTML = ''; showToast('Permission updated successfully', 'success'); }">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+      <div class="modal-body">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Permission Code</label>
+            <input type="text" th:value="${permission.code}" disabled
+                   style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: #f1f5f9; color: var(--text-muted); font-family: monospace;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Tenant</label>
+            <input type="text" th:value="${permission.tenantId != null ? permission.tenantId : 'global'}" disabled
+                   style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: #f1f5f9; color: var(--text-muted);">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Display Name</label>
+          <input type="text" name="name" th:value="${permission.name}" required
+                 style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Category</label>
+          <select name="category" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: white;">
+            <option value="GENERAL" th:selected="${permission.category == 'GENERAL'}">GENERAL</option>
+            <option value="CLIENTS" th:selected="${permission.category == 'CLIENTS'}">CLIENTS</option>
+            <option value="USERS" th:selected="${permission.category == 'USERS'}">USERS</option>
+            <option value="RBAC" th:selected="${permission.category == 'RBAC'}">RBAC</option>
+            <option value="TOKENS" th:selected="${permission.category == 'TOKENS'}">TOKENS</option>
+            <option value="REPORTS" th:selected="${permission.category == 'REPORTS'}">REPORTS</option>
+            <option value="BILLING" th:selected="${permission.category == 'BILLING'}">BILLING</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Description</label>
+          <input type="text" name="description" th:value="${permission.description}" placeholder="Description of entitlement"
+                 style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('rbac-modal').innerHTML = ''">
+          Cancel
+        </button>
+        <button type="submit" class="btn btn-primary">
+          <span>💾</span> Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+</body>
+</html>

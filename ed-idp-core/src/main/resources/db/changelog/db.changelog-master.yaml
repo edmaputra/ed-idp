@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/iam/db.changelog-iam.json
+  - include:
+      file: db/changelog/idp/01-create-oauth2-tables.yaml
+  - include:
+      file: db/changelog/idp/02-create-user-profiles-and-claims-tables.yaml

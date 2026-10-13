@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/fragments/layout :: head('Dashboard')}"></head>
+<body>
+
+<div class="layout-container">
+  <aside th:replace="~{admin/fragments/layout :: sidebar('dashboard')}"></aside>
+
+  <div class="main-content">
+    <header th:replace="~{admin/fragments/layout :: topbar('Overview Dashboard')}"></header>
+
+    <main class="page-body">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="card" style="margin-bottom: 0;">
+          <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500;">
+            TOTAL REGISTERED CLIENTS
+          </div>
+          <div style="font-size: 2.25rem; font-weight: 700; color: var(--primary);" th:text="${clientCount}">0</div>
+          <div style="margin-top: 0.75rem;">
+            <a th:href="@{${basePath} + '/clients'}" style="font-size: 0.85rem; color: var(--primary); text-decoration: none; font-weight: 500;">
+              View all clients &rarr;
+            </a>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+          <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500;">
+            USERS &amp; IDENTITIES
+          </div>
+          <div style="font-size: 2.25rem; font-weight: 700; color: #8b5cf6;" th:text="${userCount}">0</div>
+          <div style="margin-top: 0.75rem;">
+            <a th:href="@{${basePath} + '/users'}" style="font-size: 0.85rem; color: #8b5cf6; text-decoration: none; font-weight: 500;">
+              Manage users &rarr;
+            </a>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+          <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500;">
+            ROLES CONFIGURED
+          </div>
+          <div style="font-size: 2.25rem; font-weight: 700; color: #f59e0b;" th:text="${roleCount}">0</div>
+          <div style="margin-top: 0.75rem;">
+            <a th:href="@{${basePath} + '/rbac'}" style="font-size: 0.85rem; color: #f59e0b; text-decoration: none; font-weight: 500;">
+              Manage roles &rarr;
+            </a>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+          <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500;">
+            USER GROUPS
+          </div>
+          <div style="font-size: 2.25rem; font-weight: 700; color: #ec4899;" th:text="${groupCount}">0</div>
+          <div style="margin-top: 0.75rem;">
+            <a th:href="@{${basePath} + '/rbac'}" style="font-size: 0.85rem; color: #ec4899; text-decoration: none; font-weight: 500;">
+              Manage groups &rarr;
+            </a>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+          <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500;">
+            ACTIVE TENANTS
+          </div>
+          <div style="font-size: 2.25rem; font-weight: 700; color: #10b981;" th:text="${tenantCount}">0</div>
+          <div style="margin-top: 0.75rem;">
+            <a th:href="@{${basePath} + '/tenants'}" style="font-size: 0.85rem; color: #10b981; text-decoration: none; font-weight: 500;">
+              Explore tenants &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;">System Status &amp; Add-on Architecture</h3>
+        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1rem;">
+          The Admin Console is running as an <strong>optional add-on module</strong> with Thymeleaf and HTMX.
+          When disabled (<code>edidp.ui.enabled=false</code>), the system runs as a pure headless OAuth 2.1 / OIDC identity provider.
+        </p>
+        <div style="display: flex; gap: 0.75rem;">
+          <a th:href="@{/actuator/health}" target="_blank" class="btn btn-secondary">
+            <span>🩺</span> Actuator Health
+          </a>
+          <a th:href="@{/.well-known/openid-configuration}" target="_blank" class="btn btn-secondary">
+            <span>⚙️</span> OIDC Discovery
+          </a>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div th:replace="~{admin/fragments/layout :: toastContainer}"></div>
+<script th:replace="~{admin/fragments/layout :: toastScript}"></script>
+
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/fragments/layout :: head('OAuth2 Clients')}"></head>
+<body>
+
+<div class="layout-container">
+  <aside th:replace="~{admin/fragments/layout :: sidebar('clients')}"></aside>
+
+  <div class="main-content">
+    <header th:replace="~{admin/fragments/layout :: topbar('OAuth 2.1 Clients')}"></header>
+
+    <main class="page-body">
+      <!-- Register Client Card -->
+      <div class="card">
+        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;">Register New OAuth2 Client</h3>
+        <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">
+          Configure client credentials, allowed grants, scopes, and redirect URIs.
+        </p>
+
+        <form th:attr="hx-post=@{${basePath} + '/clients'}"
+              hx-target="#clients-table"
+              hx-swap="outerHTML"
+              hx-on::after-request="if(event.detail.successful) { this.reset(); showToast('OAuth2 client registered successfully', 'success'); }"
+              style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; align-items: flex-end;">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Client ID</label>
+            <input type="text" name="clientId" required placeholder="my-app"
+                   style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Client Secret</label>
+            <input type="password" name="clientSecret" placeholder="(blank for public PKCE)"
+                   style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Client Name</label>
+            <input type="text" name="clientName" placeholder="My Application"
+                   style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Tenant</label>
+            <input type="text" name="tenantId" value="demo" required
+                   style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Grant Types</label>
+            <input type="text" name="grantTypes" value="authorization_code,refresh_token" required
+                   style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Scopes</label>
+            <input type="text" name="scopes" value="openid,profile,email,read" required
+                   style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Redirect URIs</label>
+            <input type="text" name="redirectUris" placeholder="http://127.0.0.1:8080/callback"
+                   style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+          </div>
+
+          <div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.55rem;">
+              <span>➕</span> Register Client
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Clients List Card -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <div>
+            <h3 style="font-size: 1.1rem; font-weight: 600;">Registered Clients</h3>
+            <p style="color: var(--text-muted); font-size: 0.875rem;">Applications registered with the Authorization Server.</p>
+          </div>
+          <div>
+            <button class="btn btn-secondary"
+                    th:attr="hx-get=@{${basePath} + '/clients/table'}"
+                    hx-target="#clients-table"
+                    hx-swap="outerHTML"
+                    hx-on::after-request="if(event.detail.successful) showToast('Clients table refreshed', 'info')">
+              <span>🔄</span> Refresh Table
+            </button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="table" id="clients-table" th:fragment="clientTableBody">
+            <thead>
+              <tr>
+                <th>Client ID</th>
+                <th>Client Name</th>
+                <th>Tenant</th>
+                <th>Grant Types</th>
+                <th>Scopes</th>
+                <th>Redirect URIs</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="clients-tbody">
+              <tr th:if="${#lists.isEmpty(clients)}">
+                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                  No registered clients found.
+                </td>
+              </tr>
+              <tr th:each="client : ${clients}">
+                <td style="font-weight: 600;" th:text="${client.clientId}">client-id</td>
+                <td th:text="${client.clientName}">Client Name</td>
+                <td>
+                  <span class="badge" th:text="${client.tenantId}">demo</span>
+                </td>
+                <td style="font-size: 0.85rem; color: var(--text-muted);" th:text="${client.authorizationGrantTypes}">authorization_code</td>
+                <td>
+                  <span class="badge" style="background-color: #f3f4f6; color: #374151;" th:text="${client.scopes}">openid</span>
+                </td>
+                <td style="font-size: 0.85rem; color: var(--text-muted);" th:text="${client.redirectUris}">http://...</td>
+                <td>
+                  <button class="btn btn-secondary"
+                          style="font-size: 0.75rem; padding: 0.25rem 0.6rem; color: #ef4444;"
+                          th:attr="hx-post=@{${basePath} + '/clients/' + ${client.clientId} + '/delete'(tenantId=${client.tenantId})},
+                                   hx-headers='{&quot;' + ${_csrf.headerName} + '&quot;: &quot;' + ${_csrf.token} + '&quot;}',
+                                   hx-confirm='Are you sure you want to delete client ' + ${client.clientId} + '?'"
+                          hx-target="#clients-table"
+                          hx-swap="outerHTML"
+                          hx-on::after-request="if(event.detail.successful) showToast('Client deleted successfully', 'success')">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div th:replace="~{admin/fragments/layout :: toastContainer}"></div>
+<script th:replace="~{admin/fragments/layout :: toastScript}"></script>
+
+</body>
+</html>

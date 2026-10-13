@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${title} + ' - ed-idp Admin'">ed-idp Admin</title>
+  <link rel="stylesheet" th:href="@{/ui-assets/css/admin.css}">
+  <script th:src="@{/ui-assets/js/htmx.min.js}"></script>
+</head>
+<body>
+
+<aside th:fragment="sidebar(activeMenu)" class="sidebar">
+  <div class="sidebar-brand">
+    <span>🛡️</span> ed-idp Console
+  </div>
+  <nav class="sidebar-nav">
+    <a th:href="@{${basePath} + '/dashboard'}" class="nav-link" th:classappend="${activeMenu == 'dashboard'} ? ' active' : ''">
+      <span>📊</span> Dashboard
+    </a>
+    <a th:href="@{${basePath} + '/clients'}" class="nav-link" th:classappend="${activeMenu == 'clients'} ? ' active' : ''">
+      <span>🔑</span> OAuth2 Clients
+    </a>
+    <a th:href="@{${basePath} + '/users'}" class="nav-link" th:classappend="${activeMenu == 'users'} ? ' active' : ''">
+      <span>👥</span> Users &amp; IAM
+    </a>
+    <a th:href="@{${basePath} + '/rbac'}" class="nav-link" th:classappend="${activeMenu == 'rbac'} ? ' active' : ''">
+      <span>🛡️</span> Roles &amp; Groups
+    </a>
+    <a th:href="@{${basePath} + '/tenants'}" class="nav-link" th:classappend="${activeMenu == 'tenants'} ? ' active' : ''">
+      <span>🏢</span> Tenants
+    </a>
+  </nav>
+  <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 1rem;">
+    <form th:action="@{${basePath} + '/logout'}" method="post">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+      <button type="submit" class="btn btn-secondary" style="width: 100%; justify-content: flex-start; background: transparent; color: #94a3b8; border: none;">
+        <span>🚪</span> Sign Out
+      </button>
+    </form>
+  </div>
+</aside>
+
+<header th:fragment="topbar(pageTitle)" class="topbar">
+  <h2 th:text="${pageTitle}" style="font-size: 1.25rem; font-weight: 600;">Page Title</h2>
+  <div style="display: flex; align-items: center; gap: 1rem;">
+    <span class="badge badge-success">Admin Mode</span>
+  </div>
+</header>
+
+<!-- Global Toast Container -->
+<div id="toast-container" th:fragment="toastContainer"></div>
+
+<script th:fragment="toastScript">
+  function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.classList.add('toast-hide');
+      setTimeout(() => toast.remove(), 300);
+    }, 3500);
+  }
+
+  document.addEventListener('showToast', function(e) {
+    if (e.detail && e.detail.message) {
+      showToast(e.detail.message, e.detail.type || 'success');
+    }
+  });
+
+  document.addEventListener('htmx:responseError', function(e) {
+    let msg = 'Operation failed: Server returned error';
+    if (e.detail && e.detail.xhr) {
+      if (e.detail.xhr.status === 403 || e.detail.xhr.status === 401) {
+        msg = 'Unauthorized or session expired';
+      } else if (e.detail.xhr.responseText && e.detail.xhr.responseText.length < 100 && !e.detail.xhr.responseText.includes('<html')) {
+        msg = e.detail.xhr.responseText;
+      } else if (e.detail.xhr.statusText) {
+        msg = `Operation failed (${e.detail.xhr.status}: ${e.detail.xhr.statusText})`;
+      }
+    }
+    showToast(msg, 'error');
+  });
+
+  document.addEventListener('htmx:sendError', function(e) {
+    showToast('Network error: Request failed', 'error');
+  });
+</script>
+
+</body>
+</html>

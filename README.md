@@ -44,8 +44,16 @@ Default base URL:
 - Scopes: `openid profile email read`
 
 ### Demo end user
-- Username: `demo-user`
+- Username / Email: `demo-user@example.com`
 - Password: `demo-password`
+- Role: `ROLE_USER`
+
+### Admin user (Management UI)
+- Username / Email: `admin@example.com`
+- Password: `admin-password`
+- Role: `ROLE_ADMIN`
+- Admin UI URL: `http://localhost:9000/admin/login`
+- Run with UI: `./mvnw spring-boot:run -pl ed-idp-ui`
 
 ## Standards and Endpoints
 
