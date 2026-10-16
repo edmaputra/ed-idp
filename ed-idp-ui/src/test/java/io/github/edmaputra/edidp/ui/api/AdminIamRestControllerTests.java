@@ -421,4 +421,104 @@ class AdminIamRestControllerTests {
 
     verify(adminUserService).disableMfa("alice", "secret-pwd");
   }
+
+  @Test
+  void createClient_returnsCreated() throws Exception {
+    mockMvc.perform(post("/admin/api/clients")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                  "clientId": "new-client",
+                  "clientSecret": "secret",
+                  "clientName": "New Client",
+                  "tenantId": "demo",
+                  "grantTypes": "authorization_code",
+                  "scopes": "openid",
+                  "redirectUris": "http://localhost/cb",
+                  "requirePkce": true
+                }
+                """))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.clientId").value("new-client"));
+
+    verify(adminClientService).createClient(any(AdminClientService.CreateClientCommand.class));
+  }
+
+  @Test
+  void getPermissionByCode_whenNotFound_returns404() throws Exception {
+    when(adminRbacService.getPermissionByCode("unknown")).thenReturn(Optional.empty());
+
+    mockMvc.perform(get("/admin/api/permissions/code/unknown"))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void createRole_returnsCreated() throws Exception {
+    mockMvc.perform(post("/admin/api/roles")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                  "name": "AUDITOR",
+                  "description": "Auditor role",
+                  "tenantId": "demo",
+                  "permissionIds": ["perm-1"]
+                }
+                """))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.roleName").value("AUDITOR"));
+
+    verify(adminRbacService).createRole(any(AdminRbacService.CreateRoleCommand.class));
+  }
+
+  @Test
+  void getRole_whenNotFound_returns404() throws Exception {
+    when(adminRbacService.getRole("unknown")).thenReturn(Optional.empty());
+
+    mockMvc.perform(get("/admin/api/roles/unknown"))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void deleteRole_returnsOk() throws Exception {
+    mockMvc.perform(delete("/admin/api/roles/role-1").param("tenantId", "demo"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.roleId").value("role-1"));
+
+    verify(adminRbacService).deleteRole("role-1", "demo");
+  }
+
+  @Test
+  void createGroup_returnsCreated() throws Exception {
+    mockMvc.perform(post("/admin/api/groups")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                  "name": "Security",
+                  "description": "Sec group",
+                  "tenantId": "demo",
+                  "roleIds": ["role-admin"]
+                }
+                """))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.groupName").value("Security"));
+
+    verify(adminRbacService).createGroup(any(AdminRbacService.CreateGroupCommand.class));
+  }
+
+  @Test
+  void getGroup_whenNotFound_returns404() throws Exception {
+    when(adminRbacService.getGroup("unknown")).thenReturn(Optional.empty());
+
+    mockMvc.perform(get("/admin/api/groups/unknown"))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void deleteGroup_returnsOk() throws Exception {
+    mockMvc.perform(delete("/admin/api/groups/group-1").param("tenantId", "demo"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.groupId").value("group-1"));
+
+    verify(adminRbacService).deleteGroup("group-1", "demo");
+  }
 }

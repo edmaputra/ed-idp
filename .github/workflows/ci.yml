@@ -52,10 +52,10 @@ jobs:
       - name: Generate JaCoCo Coverage Summary
         if: always()
         run: |
-          if [ -f .agents/scripts/coverage/generate-jacoco-summary.py ]; then
-            python3 .agents/scripts/coverage/generate-jacoco-summary.py --output target/coverage-summary.md
-          elif [ -f .github/scripts/generate-jacoco-summary.py ]; then
+          if [ -f .github/scripts/generate-jacoco-summary.py ]; then
             python3 .github/scripts/generate-jacoco-summary.py --output target/coverage-summary.md
+          elif [ -f .agents/scripts/coverage/generate-jacoco-summary.py ]; then
+            python3 .agents/scripts/coverage/generate-jacoco-summary.py --output target/coverage-summary.md
           else
             echo "Coverage generator script not found."
           fi
