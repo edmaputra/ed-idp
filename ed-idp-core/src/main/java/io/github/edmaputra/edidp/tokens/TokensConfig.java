@@ -5,6 +5,7 @@ import io.github.edmaputra.edidp.claims.UserClaimsService;
 import io.github.edmaputra.edidp.tenancy.TenantContext;
 import io.github.edmaputra.edidp.tenancy.TenantIssuerService;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -75,8 +76,8 @@ public class TokensConfig {
       if (OidcParameterNames.ID_TOKEN.equals(context.getTokenType().getValue())) {
         boolean mfaCompleted = hasMfaCompleted(authorization);
         List<String> amr = mfaCompleted
-            ? new java.util.ArrayList<>(List.of("pwd", "mfa", "totp"))
-            : new java.util.ArrayList<>(List.of("pwd"));
+            ? new ArrayList<>(List.of("pwd", "mfa", "totp"))
+            : new ArrayList<>(List.of("pwd"));
         context.getClaims().claim("amr", amr);
         context.getClaims().claims((claims) ->
             claims.putAll(userClaimsService.getClaims(username, ClaimType.ID_TOKEN)));

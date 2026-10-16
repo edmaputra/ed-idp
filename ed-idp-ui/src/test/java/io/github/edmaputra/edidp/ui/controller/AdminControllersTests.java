@@ -16,8 +16,12 @@ import io.github.edmaputra.edidp.ui.service.AdminClientService;
 import io.github.edmaputra.edidp.ui.service.AdminRbacService;
 import io.github.edmaputra.edidp.ui.service.AdminTenantService;
 import io.github.edmaputra.edidp.ui.service.AdminUserService;
+import io.github.edmaputra.iam.application.model.MfaSetupResponse;
+import io.github.edmaputra.iam.application.model.MfaStatusResponse;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,7 +51,7 @@ class AdminControllersTests {
   private AdminUserService adminUserService;
 
   @Mock
-  private io.github.edmaputra.edidp.ui.service.AdminRbacService adminRbacService;
+  private AdminRbacService adminRbacService;
 
   private UiProperties uiProperties;
   private MockMvc dashboardMockMvc;
@@ -180,7 +184,7 @@ class AdminControllersTests {
         "alice", true, "demo", "Alice Smith", "alice@example.com",
         List.of("ROLE_USER"), List.of("Engineering"), "IT"
     );
-    when(adminUserService.getUser("alice")).thenReturn(java.util.Optional.of(user));
+    when(adminUserService.getUser("alice")).thenReturn(Optional.of(user));
     when(adminRbacService.listRoles()).thenReturn(List.of());
     when(adminRbacService.listGroups()).thenReturn(List.of());
 
@@ -196,7 +200,7 @@ class AdminControllersTests {
   void updateUser_executesAndReturnsTable() throws Exception {
     when(adminUserService.listUsers()).thenReturn(List.of());
 
-    userMockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/admin/users/alice")
+    userMockMvc.perform(post("/admin/users/alice")
             .param("fullName", "Alice Updated")
             .param("email", "alice_new@example.com")
             .param("department", "Core")
@@ -208,7 +212,7 @@ class AdminControllersTests {
         .andExpect(view().name("admin/users/list :: userTableBody"))
         .andExpect(model().attributeExists("users"));
 
-    org.mockito.Mockito.verify(adminUserService).updateUser(any(AdminUserService.UpdateUserCommand.class));
+    verify(adminUserService).updateUser(any(AdminUserService.UpdateUserCommand.class));
   }
 
   @Test
@@ -217,8 +221,8 @@ class AdminControllersTests {
         "alice", true, "demo", "Alice Smith", "alice@example.com",
         List.of("ROLE_USER"), List.of("Engineering"), "IT", false
     );
-    when(adminUserService.getUser("alice")).thenReturn(java.util.Optional.of(user));
-    when(adminUserService.getMfaStatus("alice")).thenReturn(new io.github.edmaputra.iam.application.model.MfaStatusResponse(false, null));
+    when(adminUserService.getUser("alice")).thenReturn(Optional.of(user));
+    when(adminUserService.getMfaStatus("alice")).thenReturn(new MfaStatusResponse(false, null));
 
     userMockMvc.perform(get("/admin/users/alice/mfa"))
         .andExpect(status().isOk())
@@ -233,12 +237,12 @@ class AdminControllersTests {
         "alice", true, "demo", "Alice Smith", "alice@example.com",
         List.of("ROLE_USER"), List.of("Engineering"), "IT", false
     );
-    when(adminUserService.getUser("alice")).thenReturn(java.util.Optional.of(user));
+    when(adminUserService.getUser("alice")).thenReturn(Optional.of(user));
     when(adminUserService.initiateMfaSetup("alice")).thenReturn(
-        new io.github.edmaputra.iam.application.model.MfaSetupResponse("SECRETKEY", "otpauth://uri", List.of("BACKUP1"))
+        new MfaSetupResponse("SECRETKEY", "otpauth://uri", List.of("BACKUP1"))
     );
 
-    userMockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/admin/users/alice/mfa/setup"))
+    userMockMvc.perform(post("/admin/users/alice/mfa/setup"))
         .andExpect(status().isOk())
         .andExpect(view().name("admin/users/mfa-modal :: mfaSetupStep"))
         .andExpect(model().attribute("user", user))
@@ -251,17 +255,17 @@ class AdminControllersTests {
         "alice", true, "demo", "Alice Smith", "alice@example.com",
         List.of("ROLE_USER"), List.of("Engineering"), "IT", false
     );
-    when(adminUserService.getUser("alice")).thenReturn(java.util.Optional.of(user));
-    when(adminUserService.getMfaStatus("alice")).thenReturn(new io.github.edmaputra.iam.application.model.MfaStatusResponse(true, java.time.Instant.now()));
+    when(adminUserService.getUser("alice")).thenReturn(Optional.of(user));
+    when(adminUserService.getMfaStatus("alice")).thenReturn(new MfaStatusResponse(true, Instant.now()));
 
-    userMockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/admin/users/alice/mfa/activate")
+    userMockMvc.perform(post("/admin/users/alice/mfa/activate")
             .param("code", "123456"))
         .andExpect(status().isOk())
         .andExpect(view().name("admin/users/mfa-modal :: mfaActivatedStep"))
         .andExpect(model().attribute("user", user))
         .andExpect(model().attributeExists("mfaStatus"));
 
-    org.mockito.Mockito.verify(adminUserService).activateMfa("alice", "123456");
+    verify(adminUserService).activateMfa("alice", "123456");
   }
 
   @Test
@@ -270,17 +274,17 @@ class AdminControllersTests {
         "alice", true, "demo", "Alice Smith", "alice@example.com",
         List.of("ROLE_USER"), List.of("Engineering"), "IT", true
     );
-    when(adminUserService.getUser("alice")).thenReturn(java.util.Optional.of(user));
-    when(adminUserService.getMfaStatus("alice")).thenReturn(new io.github.edmaputra.iam.application.model.MfaStatusResponse(false, null));
+    when(adminUserService.getUser("alice")).thenReturn(Optional.of(user));
+    when(adminUserService.getMfaStatus("alice")).thenReturn(new MfaStatusResponse(false, null));
 
-    userMockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/admin/users/alice/mfa/disable")
+    userMockMvc.perform(post("/admin/users/alice/mfa/disable")
             .param("codeOrPassword", "secret-password"))
         .andExpect(status().isOk())
         .andExpect(view().name("admin/users/mfa-modal :: mfaDisabledStep"))
         .andExpect(model().attribute("user", user))
         .andExpect(model().attributeExists("mfaStatus"));
 
-    org.mockito.Mockito.verify(adminUserService).disableMfa("alice", "secret-password");
+    verify(adminUserService).disableMfa("alice", "secret-password");
   }
 
   @Test
@@ -297,7 +301,7 @@ class AdminControllersTests {
   void createPermission_executesAndReturnsFragment() throws Exception {
     when(adminRbacService.listPermissions()).thenReturn(List.of());
 
-    rbacMockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/admin/rbac/permissions")
+    rbacMockMvc.perform(post("/admin/rbac/permissions")
             .param("code", "reports:export")
             .param("name", "Export Reports")
             .param("description", "Allow report export")
@@ -307,25 +311,25 @@ class AdminControllersTests {
         .andExpect(view().name("admin/rbac/list :: permissionsCatalogBody"))
         .andExpect(model().attributeExists("permissions"));
 
-    org.mockito.Mockito.verify(adminRbacService).createPermission(any(AdminRbacService.CreatePermissionCommand.class));
+    verify(adminRbacService).createPermission(any(AdminRbacService.CreatePermissionCommand.class));
   }
 
   @Test
   void deletePermission_executesAndReturnsFragment() throws Exception {
     when(adminRbacService.listPermissions()).thenReturn(List.of());
 
-    rbacMockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/admin/rbac/permissions/perm-123"))
+    rbacMockMvc.perform(delete("/admin/rbac/permissions/perm-123"))
         .andExpect(status().isOk())
         .andExpect(view().name("admin/rbac/list :: permissionsCatalogBody"))
         .andExpect(model().attributeExists("permissions"));
 
-    org.mockito.Mockito.verify(adminRbacService).deletePermission("perm-123");
+    verify(adminRbacService).deletePermission("perm-123");
   }
 
   @Test
   void editRoleModal_returnsModalFragment() throws Exception {
     var role = new AdminRbacService.RoleDetail("role-1", "ROLE_ADMIN", "Admin", "demo", List.of("perm-1"));
-    when(adminRbacService.getRole("role-1")).thenReturn(java.util.Optional.of(role));
+    when(adminRbacService.getRole("role-1")).thenReturn(Optional.of(role));
     when(adminRbacService.listPermissions()).thenReturn(List.of());
 
     rbacMockMvc.perform(get("/admin/rbac/roles/role-1/edit"))
@@ -339,19 +343,19 @@ class AdminControllersTests {
   void updateRole_executesAndReturnsTable() throws Exception {
     when(adminRbacService.listRoles()).thenReturn(List.of());
 
-    rbacMockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/admin/rbac/roles/role-1")
+    rbacMockMvc.perform(post("/admin/rbac/roles/role-1")
             .param("description", "Updated Admin")
             .param("permissions", "perm-1", "perm-2"))
         .andExpect(status().isOk())
         .andExpect(view().name("admin/rbac/list :: rolesTableBody"));
 
-    org.mockito.Mockito.verify(adminRbacService).updateRole(any(AdminRbacService.UpdateRoleCommand.class));
+    verify(adminRbacService).updateRole(any(AdminRbacService.UpdateRoleCommand.class));
   }
 
   @Test
   void editGroupModal_returnsModalFragment() throws Exception {
     var group = new AdminRbacService.GroupDetail("group-1", "Engineering", "Desc", "demo", List.of("role-1"));
-    when(adminRbacService.getGroup("group-1")).thenReturn(java.util.Optional.of(group));
+    when(adminRbacService.getGroup("group-1")).thenReturn(Optional.of(group));
     when(adminRbacService.listRoles()).thenReturn(List.of());
 
     rbacMockMvc.perform(get("/admin/rbac/groups/group-1/edit"))
@@ -365,19 +369,19 @@ class AdminControllersTests {
   void updateGroup_executesAndReturnsTable() throws Exception {
     when(adminRbacService.listGroups()).thenReturn(List.of());
 
-    rbacMockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/admin/rbac/groups/group-1")
+    rbacMockMvc.perform(post("/admin/rbac/groups/group-1")
             .param("description", "Updated Group")
             .param("roleIds", "role-1"))
         .andExpect(status().isOk())
         .andExpect(view().name("admin/rbac/list :: groupsTableBody"));
 
-    org.mockito.Mockito.verify(adminRbacService).updateGroup(any(AdminRbacService.UpdateGroupCommand.class));
+    verify(adminRbacService).updateGroup(any(AdminRbacService.UpdateGroupCommand.class));
   }
 
   @Test
   void editPermissionModal_returnsModalFragment() throws Exception {
     var perm = new AdminRbacService.PermissionSummary("perm-1", "reports:export", "Export", "Desc", "REPORTS", false, "demo");
-    when(adminRbacService.getPermissionById("perm-1")).thenReturn(java.util.Optional.of(perm));
+    when(adminRbacService.getPermissionById("perm-1")).thenReturn(Optional.of(perm));
 
     rbacMockMvc.perform(get("/admin/rbac/permissions/perm-1/edit"))
         .andExpect(status().isOk())
@@ -450,7 +454,7 @@ class AdminControllersTests {
     verify(adminUserService).setUserEnabled("bob", false);
 
     // Edit user modal when user not found redirects
-    when(adminUserService.getUser("unknown")).thenReturn(java.util.Optional.empty());
+    when(adminUserService.getUser("unknown")).thenReturn(Optional.empty());
     userMockMvc.perform(get("/admin/users/unknown/edit"))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl("/admin/users"));

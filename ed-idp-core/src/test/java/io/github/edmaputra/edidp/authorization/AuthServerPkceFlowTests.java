@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import tools.jackson.databind.JsonNode;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
@@ -48,8 +49,8 @@ class AuthServerPkceFlowTests extends AuthServerIntegrationTests {
         + "&scope=" + URLEncoder.encode("openid", StandardCharsets.UTF_8)
         + "&state=pkce-state";
 
-    HttpResponse<String> authorizeResponse = java.net.http.HttpClient.newBuilder()
-        .followRedirects(java.net.http.HttpClient.Redirect.NEVER)
+    HttpResponse<String> authorizeResponse = HttpClient.newBuilder()
+        .followRedirects(HttpClient.Redirect.NEVER)
         .build()
         .send(
             HttpRequest.newBuilder().uri(appUri(authorizePath)).GET().build(),

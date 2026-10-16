@@ -3,6 +3,7 @@ package io.github.edmaputra.edidp.ui.service;
 import io.github.edmaputra.iam.application.model.MfaSetupResponse;
 import io.github.edmaputra.iam.application.model.MfaStatusResponse;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Service defining IAM administrative operations for users and profiles.
@@ -174,7 +175,7 @@ public interface AdminUserService {
    * @param username target username
    * @return optional user summary
    */
-  java.util.Optional<AdminUserSummary> getUser(String username);
+  Optional<AdminUserSummary> getUser(String username);
 
   /**
    * Counts total registered users.

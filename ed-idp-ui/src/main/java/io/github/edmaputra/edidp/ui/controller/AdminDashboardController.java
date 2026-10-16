@@ -2,6 +2,7 @@ package io.github.edmaputra.edidp.ui.controller;
 
 import io.github.edmaputra.edidp.ui.UiProperties;
 import io.github.edmaputra.edidp.ui.service.AdminClientService;
+import io.github.edmaputra.edidp.ui.service.AdminRbacService;
 import io.github.edmaputra.edidp.ui.service.AdminTenantService;
 import io.github.edmaputra.edidp.ui.service.AdminUserService;
 import java.util.Objects;
@@ -25,14 +26,14 @@ public class AdminDashboardController {
   private final AdminClientService adminClientService;
   private final AdminTenantService adminTenantService;
   private final AdminUserService adminUserService;
-  private final io.github.edmaputra.edidp.ui.service.AdminRbacService adminRbacService;
+  private final AdminRbacService adminRbacService;
 
   public AdminDashboardController(
       UiProperties uiProperties,
       AdminClientService adminClientService,
       AdminTenantService adminTenantService,
       AdminUserService adminUserService,
-      io.github.edmaputra.edidp.ui.service.AdminRbacService adminRbacService) {
+      AdminRbacService adminRbacService) {
     this.uiProperties = Objects.requireNonNull(uiProperties, "uiProperties must not be null");
     this.adminClientService = Objects.requireNonNull(adminClientService, "adminClientService must not be null");
     this.adminTenantService = Objects.requireNonNull(adminTenantService, "adminTenantService must not be null");

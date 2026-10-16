@@ -36,13 +36,13 @@ public class AdminIamRestController {
   private final AdminUserService adminUserService;
   private final AdminClientService adminClientService;
   private final AdminTenantService adminTenantService;
-  private final io.github.edmaputra.edidp.ui.service.AdminRbacService adminRbacService;
+  private final AdminRbacService adminRbacService;
 
   public AdminIamRestController(
       AdminUserService adminUserService,
       AdminClientService adminClientService,
       AdminTenantService adminTenantService,
-      io.github.edmaputra.edidp.ui.service.AdminRbacService adminRbacService) {
+      AdminRbacService adminRbacService) {
     this.adminUserService = Objects.requireNonNull(adminUserService, "adminUserService must not be null");
     this.adminClientService = Objects.requireNonNull(adminClientService, "adminClientService must not be null");
     this.adminTenantService = Objects.requireNonNull(adminTenantService, "adminTenantService must not be null");
@@ -70,7 +70,7 @@ public class AdminIamRestController {
         .orElseGet(() -> ResponseEntity.notFound().build());
   }
 
-  @org.springframework.web.bind.annotation.PutMapping("/users/{username}")
+  @PutMapping("/users/{username}")
   public ResponseEntity<Map<String, String>> updateUser(
       @PathVariable String username,
       @RequestBody AdminUserService.UpdateUserCommand command) {
@@ -137,7 +137,7 @@ public class AdminIamRestController {
         .body(Map.of("message", "Client registered successfully", "clientId", command.clientId()));
   }
 
-  @org.springframework.web.bind.annotation.DeleteMapping("/clients/{clientId}")
+  @DeleteMapping("/clients/{clientId}")
   public ResponseEntity<Map<String, String>> deleteClient(
       @PathVariable String clientId,
       @RequestParam(required = false, defaultValue = "demo") String tenantId) {
@@ -291,7 +291,7 @@ public class AdminIamRestController {
     return ResponseEntity.ok(Map.of("message", "Member added successfully", "username", username));
   }
 
-  @org.springframework.web.bind.annotation.DeleteMapping("/groups/{groupId}/members/{username}")
+  @DeleteMapping("/groups/{groupId}/members/{username}")
   public ResponseEntity<Map<String, String>> removeGroupMember(
       @PathVariable String groupId,
       @PathVariable String username) {

@@ -1,8 +1,10 @@
 package io.github.edmaputra.edidp.oauth.mfa;
 
+import io.github.edmaputra.iam.adapter.security.SecurityContextAccessor;
 import io.github.edmaputra.iam.adapter.security.jwt.JwtProperties;
 import io.github.edmaputra.iam.adapter.security.jwt.JwtTokenProvider;
 import io.github.edmaputra.iam.application.port.out.TokenProviderPort;
+import io.github.edmaputra.iam.domain.security.CurrentActorProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -27,8 +29,8 @@ public class IamAuthBridgeConfig {
   }
 
   @Bean
-  @ConditionalOnMissingBean(io.github.edmaputra.iam.domain.security.CurrentActorProvider.class)
-  io.github.edmaputra.iam.domain.security.CurrentActorProvider iamCurrentActorProvider() {
-    return new io.github.edmaputra.iam.adapter.security.SecurityContextAccessor();
+  @ConditionalOnMissingBean(CurrentActorProvider.class)
+  CurrentActorProvider iamCurrentActorProvider() {
+    return new SecurityContextAccessor();
   }
 }

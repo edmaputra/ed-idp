@@ -2,6 +2,7 @@ package io.github.edmaputra.edidp.ui.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
@@ -10,8 +11,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.github.edmaputra.iam.adapter.rest.MfaOperationsDelegate;
+import io.github.edmaputra.iam.application.model.MfaSetupResponse;
+import io.github.edmaputra.iam.application.model.MfaStatusResponse;
+import io.github.edmaputra.iam.domain.model.User;
+import io.github.edmaputra.iam.domain.model.UserId;
+import io.github.edmaputra.iam.domain.model.UserStatus;
+import io.github.edmaputra.iam.domain.repository.UserRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -112,8 +121,8 @@ class AdminServicesTests {
 
     adminClientService.createClient(command);
 
-    org.mockito.Mockito.verify(registeredClientRepository).save(any(RegisteredClient.class));
-    org.mockito.Mockito.verify(jdbcTemplate).update(
+    verify(registeredClientRepository).save(any(RegisteredClient.class));
+    verify(jdbcTemplate).update(
         eq("UPDATE oauth2_registered_client SET tenant_id = ? WHERE id = ?"),
         eq("demo"), any(String.class)
     );
@@ -123,7 +132,7 @@ class AdminServicesTests {
   void deleteClient_executesDelete() {
     adminClientService.deleteClient("client-123", "demo");
 
-    org.mockito.Mockito.verify(jdbcTemplate).update(
+    verify(jdbcTemplate).update(
         eq("DELETE FROM oauth2_registered_client WHERE client_id = ? AND tenant_id = ?"),
         eq("client-123"), eq("demo")
     );
@@ -150,7 +159,7 @@ class AdminServicesTests {
 
     userService.createUser(command);
 
-    org.mockito.Mockito.verify(jdbcTemplate).update(
+    verify(jdbcTemplate).update(
         contains("INSERT INTO iam_user"),
         any(), eq("alice@example.com"), eq("hashed-secret"), eq("Alice Smith"), any(), any()
     );
@@ -158,29 +167,29 @@ class AdminServicesTests {
 
   @Test
   void mfaOperations_delegateProperly() {
-    var delegate = mock(io.github.edmaputra.iam.adapter.rest.MfaOperationsDelegate.class);
-    var userRepo = mock(io.github.edmaputra.iam.domain.repository.UserRepository.class);
+    var delegate = mock(MfaOperationsDelegate.class);
+    var userRepo = mock(UserRepository.class);
     var userService = new JdbcAdminUserService(jdbcTemplate, passwordEncoder, delegate, userRepo);
 
-    var userUuid = java.util.UUID.randomUUID();
-    var userId = new io.github.edmaputra.iam.domain.model.UserId(userUuid);
-    var user = new io.github.edmaputra.iam.domain.model.User(
-        userId, "alice@example.com", "hash", "Alice", io.github.edmaputra.iam.domain.model.UserStatus.ACTIVE,
-        false, java.time.Instant.now(), java.time.Instant.now()
+    var userUuid = UUID.randomUUID();
+    var userId = new UserId(userUuid);
+    var user = new User(
+        userId, "alice@example.com", "hash", "Alice", UserStatus.ACTIVE,
+        false, Instant.now(), Instant.now()
     );
 
-    when(userRepo.findByEmail("alice@example.com")).thenReturn(java.util.Optional.of(user));
-    when(delegate.getStatus(userId)).thenReturn(new io.github.edmaputra.iam.application.model.MfaStatusResponse(true, java.time.Instant.now()));
-    when(delegate.initiateSetup(userId, "ed-idp")).thenReturn(new io.github.edmaputra.iam.application.model.MfaSetupResponse("SECRET", "otpauth://...", List.of()));
+    when(userRepo.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+    when(delegate.getStatus(userId)).thenReturn(new MfaStatusResponse(true, Instant.now()));
+    when(delegate.initiateSetup(userId, "ed-idp")).thenReturn(new MfaSetupResponse("SECRET", "otpauth://...", List.of()));
 
     assertThat(userService.getMfaStatus("alice@example.com").enabled()).isTrue();
     assertThat(userService.initiateMfaSetup("alice@example.com").secret()).isEqualTo("SECRET");
 
     userService.activateMfa("alice@example.com", "123456");
-    org.mockito.Mockito.verify(delegate).activate(userId, "123456");
+    verify(delegate).activate(userId, "123456");
 
     userService.disableMfa("alice@example.com", "secret-code");
-    org.mockito.Mockito.verify(delegate).disable(userId, "secret-code");
+    verify(delegate).disable(userId, "secret-code");
   }
 
   @Test
@@ -210,7 +219,7 @@ class AdminServicesTests {
 
     rbacService.createRole(command);
 
-    org.mockito.Mockito.verify(jdbcTemplate).update(
+    verify(jdbcTemplate).update(
         eq("""
         INSERT INTO iam_role (id, tenant_id, code, name, description, is_system_role, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, false, ?, ?)
@@ -231,13 +240,13 @@ class AdminServicesTests {
     userService.updateUser(command);
 
     // Verify iam_user table update
-    org.mockito.Mockito.verify(jdbcTemplate).update(
+    verify(jdbcTemplate).update(
         contains("UPDATE iam_user"),
         eq("ACTIVE"), eq("Alice Updated"), eq("alice.updated@example.com"), any(), any(), eq("alice")
     );
 
     // Verify group members delete
-    org.mockito.Mockito.verify(jdbcTemplate).update(
+    verify(jdbcTemplate).update(
         eq("DELETE FROM iam_user_group_membership WHERE user_id = ?"),
         any(Object.class)
     );
@@ -258,7 +267,7 @@ class AdminServicesTests {
     assertThat(result.systemPermission()).isFalse();
     assertThat(result.tenantId()).isEqualTo("demo");
 
-    org.mockito.Mockito.verify(jdbcTemplate).update(
+    verify(jdbcTemplate).update(
         eq("""
         INSERT INTO iam_permission (id, tenant_id, code, name, description, category, is_system_permission, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, false, ?, ?)
@@ -285,7 +294,7 @@ class AdminServicesTests {
     var updated = rbacService.updatePermission(command);
 
     assertThat(updated.name()).isEqualTo("Export Compliance Reports");
-    org.mockito.Mockito.verify(jdbcTemplate).update(
+    verify(jdbcTemplate).update(
         eq("""
         UPDATE iam_permission
         SET name = ?, description = ?, category = ?, updated_at = ?
@@ -309,7 +318,7 @@ class AdminServicesTests {
         "perm-clients-read", "Hacked View", "Hacked", "CLIENTS"
     );
 
-    org.junit.jupiter.api.Assertions.assertThrows(
+    assertThrows(
         IllegalStateException.class,
         () -> rbacService.updatePermission(command)
     );
@@ -327,7 +336,7 @@ class AdminServicesTests {
 
     rbacService.deletePermission("perm-custom");
 
-    org.mockito.Mockito.verify(jdbcTemplate).update(
+    verify(jdbcTemplate).update(
         eq("DELETE FROM iam_permission WHERE (id = ? OR code = ?) AND is_system_permission = false"),
         any(), eq("perm-custom")
     );
@@ -343,7 +352,7 @@ class AdminServicesTests {
     when(jdbcTemplate.query(any(String.class), any(RowMapper.class), any(), eq("perm-clients-read")))
         .thenReturn(List.of(systemPerm));
 
-    org.junit.jupiter.api.Assertions.assertThrows(
+    assertThrows(
         IllegalStateException.class,
         () -> rbacService.deletePermission("perm-clients-read")
     );
@@ -358,11 +367,11 @@ class AdminServicesTests {
 
     rbacService.updateRole(command);
 
-    org.mockito.Mockito.verify(jdbcTemplate).update(
+    verify(jdbcTemplate).update(
         eq("UPDATE iam_role SET description = ?, updated_at = ? WHERE id = ? OR code = ?"),
         eq("Administrator with updated scope"), any(), any(), eq("role-admin")
     );
-    org.mockito.Mockito.verify(jdbcTemplate).update(
+    verify(jdbcTemplate).update(
         eq("DELETE FROM iam_role_permission WHERE role_id IN (SELECT id FROM iam_role WHERE id = ? OR code = ?)"),
         any(), eq("role-admin")
     );
@@ -377,11 +386,11 @@ class AdminServicesTests {
 
     rbacService.updateGroup(command);
 
-    org.mockito.Mockito.verify(jdbcTemplate).update(
+    verify(jdbcTemplate).update(
         eq("UPDATE iam_group SET description = ?, updated_at = ? WHERE id = ? OR code = ?"),
         eq("Engineering team with devops role"), any(), any(), eq("group-eng")
     );
-    org.mockito.Mockito.verify(jdbcTemplate).update(
+    verify(jdbcTemplate).update(
         eq("DELETE FROM iam_group_role_assignment WHERE group_id = ?"),
         any(Object.class)
     );

@@ -16,6 +16,9 @@ import io.github.edmaputra.edidp.ui.service.AdminClientService;
 import io.github.edmaputra.edidp.ui.service.AdminRbacService;
 import io.github.edmaputra.edidp.ui.service.AdminTenantService;
 import io.github.edmaputra.edidp.ui.service.AdminUserService;
+import io.github.edmaputra.iam.application.model.MfaSetupResponse;
+import io.github.edmaputra.iam.application.model.MfaStatusResponse;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -373,7 +376,7 @@ class AdminIamRestControllerTests {
 
   @Test
   void getUserMfaStatus_returnsOk() throws Exception {
-    when(adminUserService.getMfaStatus("alice")).thenReturn(new io.github.edmaputra.iam.application.model.MfaStatusResponse(true, java.time.Instant.now()));
+    when(adminUserService.getMfaStatus("alice")).thenReturn(new MfaStatusResponse(true, Instant.now()));
 
     mockMvc.perform(get("/admin/api/users/alice/mfa/status"))
         .andExpect(status().isOk())
@@ -383,7 +386,7 @@ class AdminIamRestControllerTests {
   @Test
   void initiateUserMfaSetup_returnsOk() throws Exception {
     when(adminUserService.initiateMfaSetup("alice"))
-        .thenReturn(new io.github.edmaputra.iam.application.model.MfaSetupResponse("JBSWY3DPEHPK3PXP", "otpauth://totp/ed-idp:alice?secret=JBSWY3DPEHPK3PXP", List.of("A1B2-C3D4")));
+        .thenReturn(new MfaSetupResponse("JBSWY3DPEHPK3PXP", "otpauth://totp/ed-idp:alice?secret=JBSWY3DPEHPK3PXP", List.of("A1B2-C3D4")));
 
     mockMvc.perform(post("/admin/api/users/alice/mfa/setup"))
         .andExpect(status().isOk())

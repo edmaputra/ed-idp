@@ -17,6 +17,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -61,7 +62,7 @@ class MfaLoginIntegrationTests extends AuthServerIntegrationTests {
     UserMfa mfa = UserMfa.create(
         user.getId(),
         secret,
-        new java.util.ArrayList<>(List.of(TotpGenerator.hashBackupCode(rawBackupCode)))
+        new ArrayList<>(List.of(TotpGenerator.hashBackupCode(rawBackupCode)))
     );
     mfa.activate();
     userMfaRepository.save(mfa);
