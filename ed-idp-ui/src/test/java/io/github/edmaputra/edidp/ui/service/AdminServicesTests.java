@@ -12,11 +12,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.github.edmaputra.iam.adapter.rest.MfaOperationsDelegate;
-import io.github.edmaputra.iam.application.model.MfaSetupResponse;
 import io.github.edmaputra.iam.application.model.MfaStatusResponse;
 import io.github.edmaputra.iam.domain.model.User;
 import io.github.edmaputra.iam.domain.model.UserId;
 import io.github.edmaputra.iam.domain.model.UserStatus;
+import io.github.edmaputra.iam.domain.repository.UserMfaRepository;
 import io.github.edmaputra.iam.domain.repository.UserRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -169,7 +169,8 @@ class AdminServicesTests {
   void mfaOperations_delegateProperly() {
     var delegate = mock(MfaOperationsDelegate.class);
     var userRepo = mock(UserRepository.class);
-    var userService = new JdbcAdminUserService(jdbcTemplate, passwordEncoder, delegate, userRepo);
+    var userMfaRepo = mock(UserMfaRepository.class);
+    var userService = new JdbcAdminUserService(jdbcTemplate, passwordEncoder, delegate, userRepo, userMfaRepo);
 
     var userUuid = UUID.randomUUID();
     var userId = new UserId(userUuid);
@@ -180,16 +181,17 @@ class AdminServicesTests {
 
     when(userRepo.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
     when(delegate.getStatus(userId)).thenReturn(new MfaStatusResponse(true, Instant.now()));
-    when(delegate.initiateSetup(userId, "ed-idp")).thenReturn(new MfaSetupResponse("SECRET", "otpauth://...", List.of()));
 
     assertThat(userService.getMfaStatus("alice@example.com").enabled()).isTrue();
-    assertThat(userService.initiateMfaSetup("alice@example.com").secret()).isEqualTo("SECRET");
 
-    userService.activateMfa("alice@example.com", "123456");
-    verify(delegate).activate(userId, "123456");
+    // Reset MFA via UserMfaRepository
+    userService.resetMfa("alice@example.com");
+    verify(userMfaRepo).deleteByUserId(userId);
 
-    userService.disableMfa("alice@example.com", "secret-code");
-    verify(delegate).disable(userId, "secret-code");
+    // Reset MFA fallback without UserMfaRepository
+    var userServiceFallback = new JdbcAdminUserService(jdbcTemplate, passwordEncoder, delegate, userRepo, null);
+    userServiceFallback.resetMfa("alice@example.com");
+    verify(jdbcTemplate).update(eq("DELETE FROM iam_user_mfa WHERE user_id = ?"), eq(userUuid));
   }
 
   @Test

@@ -16,7 +16,6 @@ import io.github.edmaputra.edidp.ui.service.AdminClientService;
 import io.github.edmaputra.edidp.ui.service.AdminRbacService;
 import io.github.edmaputra.edidp.ui.service.AdminTenantService;
 import io.github.edmaputra.edidp.ui.service.AdminUserService;
-import io.github.edmaputra.iam.application.model.MfaSetupResponse;
 import io.github.edmaputra.iam.application.model.MfaStatusResponse;
 
 import java.time.Instant;
@@ -232,44 +231,7 @@ class AdminControllersTests {
   }
 
   @Test
-  void userMfaSetup_returnsSetupStepFragment() throws Exception {
-    var user = new AdminUserService.AdminUserSummary(
-        "alice", true, "demo", "Alice Smith", "alice@example.com",
-        List.of("ROLE_USER"), List.of("Engineering"), "IT", false
-    );
-    when(adminUserService.getUser("alice")).thenReturn(Optional.of(user));
-    when(adminUserService.initiateMfaSetup("alice")).thenReturn(
-        new MfaSetupResponse("SECRETKEY", "otpauth://uri", List.of("BACKUP1"))
-    );
-
-    userMockMvc.perform(post("/admin/users/alice/mfa/setup"))
-        .andExpect(status().isOk())
-        .andExpect(view().name("admin/users/mfa-modal :: mfaSetupStep"))
-        .andExpect(model().attribute("user", user))
-        .andExpect(model().attributeExists("setup"));
-  }
-
-  @Test
-  void userMfaActivate_returnsActivatedStepFragment() throws Exception {
-    var user = new AdminUserService.AdminUserSummary(
-        "alice", true, "demo", "Alice Smith", "alice@example.com",
-        List.of("ROLE_USER"), List.of("Engineering"), "IT", false
-    );
-    when(adminUserService.getUser("alice")).thenReturn(Optional.of(user));
-    when(adminUserService.getMfaStatus("alice")).thenReturn(new MfaStatusResponse(true, Instant.now()));
-
-    userMockMvc.perform(post("/admin/users/alice/mfa/activate")
-            .param("code", "123456"))
-        .andExpect(status().isOk())
-        .andExpect(view().name("admin/users/mfa-modal :: mfaActivatedStep"))
-        .andExpect(model().attribute("user", user))
-        .andExpect(model().attributeExists("mfaStatus"));
-
-    verify(adminUserService).activateMfa("alice", "123456");
-  }
-
-  @Test
-  void userMfaDisable_returnsDisabledStepFragment() throws Exception {
+  void userMfaReset_returnsResetStepFragment() throws Exception {
     var user = new AdminUserService.AdminUserSummary(
         "alice", true, "demo", "Alice Smith", "alice@example.com",
         List.of("ROLE_USER"), List.of("Engineering"), "IT", true
@@ -277,14 +239,22 @@ class AdminControllersTests {
     when(adminUserService.getUser("alice")).thenReturn(Optional.of(user));
     when(adminUserService.getMfaStatus("alice")).thenReturn(new MfaStatusResponse(false, null));
 
-    userMockMvc.perform(post("/admin/users/alice/mfa/disable")
-            .param("codeOrPassword", "secret-password"))
+    userMockMvc.perform(post("/admin/users/alice/mfa/reset"))
         .andExpect(status().isOk())
-        .andExpect(view().name("admin/users/mfa-modal :: mfaDisabledStep"))
+        .andExpect(view().name("admin/users/mfa-modal :: mfaResetStep"))
         .andExpect(model().attribute("user", user))
         .andExpect(model().attributeExists("mfaStatus"));
 
-    verify(adminUserService).disableMfa("alice", "secret-password");
+    verify(adminUserService).resetMfa("alice");
+  }
+
+  @Test
+  void userMfaReset_whenUserNotFound_redirects() throws Exception {
+    when(adminUserService.getUser("unknown")).thenReturn(Optional.empty());
+
+    userMockMvc.perform(post("/admin/users/unknown/mfa/reset"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/admin/users"));
   }
 
   @Test

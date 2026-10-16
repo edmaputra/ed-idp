@@ -5,7 +5,6 @@ import io.github.edmaputra.edidp.ui.service.AdminRbacService;
 import io.github.edmaputra.edidp.ui.service.AdminTenantService;
 import io.github.edmaputra.edidp.ui.service.AdminUserService;
 import io.github.edmaputra.edidp.ui.service.AdminUserService.CreateUserCommand;
-import io.github.edmaputra.iam.application.model.MfaSetupResponse;
 import io.github.edmaputra.iam.application.model.MfaStatusResponse;
 import java.util.List;
 import java.util.Map;
@@ -94,33 +93,10 @@ public class AdminIamRestController {
     return ResponseEntity.ok(adminUserService.getMfaStatus(username));
   }
 
-  @PostMapping("/users/{username}/mfa/setup")
-  public ResponseEntity<MfaSetupResponse> initiateUserMfaSetup(@PathVariable String username) {
-    return ResponseEntity.ok(adminUserService.initiateMfaSetup(username));
-  }
-
-  @PostMapping("/users/{username}/mfa/activate")
-  public ResponseEntity<Map<String, String>> activateUserMfa(
-      @PathVariable String username,
-      @RequestBody Map<String, String> body) {
-    String code = body.get("code");
-    if (code == null || code.isBlank()) {
-      return ResponseEntity.badRequest().body(Map.of("error", "Verification code must not be empty"));
-    }
-    adminUserService.activateMfa(username, code);
-    return ResponseEntity.ok(Map.of("message", "MFA activated successfully", "username", username));
-  }
-
-  @PostMapping("/users/{username}/mfa/disable")
-  public ResponseEntity<Map<String, String>> disableUserMfa(
-      @PathVariable String username,
-      @RequestBody Map<String, String> body) {
-    String codeOrPassword = body.get("codeOrPassword");
-    if (codeOrPassword == null || codeOrPassword.isBlank()) {
-      return ResponseEntity.badRequest().body(Map.of("error", "Code or password must not be empty"));
-    }
-    adminUserService.disableMfa(username, codeOrPassword);
-    return ResponseEntity.ok(Map.of("message", "MFA disabled successfully", "username", username));
+  @PostMapping("/users/{username}/mfa/reset")
+  public ResponseEntity<Map<String, String>> resetUserMfa(@PathVariable String username) {
+    adminUserService.resetMfa(username);
+    return ResponseEntity.ok(Map.of("message", "MFA reset successfully", "username", username));
   }
 
   // --- Clients IAM Endpoints ---

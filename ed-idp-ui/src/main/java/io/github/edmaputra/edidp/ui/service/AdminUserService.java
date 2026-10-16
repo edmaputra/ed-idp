@@ -1,6 +1,5 @@
 package io.github.edmaputra.edidp.ui.service;
 
-import io.github.edmaputra.iam.application.model.MfaSetupResponse;
 import io.github.edmaputra.iam.application.model.MfaStatusResponse;
 import java.util.List;
 import java.util.Optional;
@@ -215,26 +214,9 @@ public interface AdminUserService {
   MfaStatusResponse getMfaStatus(String username);
 
   /**
-   * Initiates MFA setup for a user, generating shared secret, QR code URI, and backup codes.
+   * Resets MFA for a user, revoking all registered authenticator credentials and recovery codes.
    *
    * @param username target username
-   * @return MFA setup response
    */
-  MfaSetupResponse initiateMfaSetup(String username);
-
-  /**
-   * Activates MFA for a user after verifying the initial TOTP code.
-   *
-   * @param username target username
-   * @param code 6-digit TOTP code
-   */
-  void activateMfa(String username, String code);
-
-  /**
-   * Disables MFA for a user.
-   *
-   * @param username target username
-   * @param codeOrPassword verification code or password
-   */
-  void disableMfa(String username, String codeOrPassword);
+  void resetMfa(String username);
 }

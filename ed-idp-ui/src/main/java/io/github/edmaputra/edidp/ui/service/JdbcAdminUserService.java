@@ -1,9 +1,9 @@
 package io.github.edmaputra.edidp.ui.service;
 
 import io.github.edmaputra.iam.adapter.rest.MfaOperationsDelegate;
-import io.github.edmaputra.iam.application.model.MfaSetupResponse;
 import io.github.edmaputra.iam.application.model.MfaStatusResponse;
 import io.github.edmaputra.iam.domain.model.User;
+import io.github.edmaputra.iam.domain.repository.UserMfaRepository;
 import io.github.edmaputra.iam.domain.repository.UserRepository;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -36,18 +36,34 @@ public class JdbcAdminUserService implements AdminUserService {
   private final PasswordEncoder passwordEncoder;
   private final MfaOperationsDelegate mfaOperationsDelegate;
   private final UserRepository userRepository;
+  private final UserMfaRepository userMfaRepository;
 
   @Autowired
   public JdbcAdminUserService(
       JdbcTemplate jdbcTemplate,
       PasswordEncoder passwordEncoder,
       ObjectProvider<MfaOperationsDelegate> mfaOperationsDelegateProvider,
-      ObjectProvider<UserRepository> userRepositoryProvider) {
+      ObjectProvider<UserRepository> userRepositoryProvider,
+      ObjectProvider<UserMfaRepository> userMfaRepositoryProvider) {
     this(
         jdbcTemplate,
         passwordEncoder,
         mfaOperationsDelegateProvider.getIfAvailable(),
-        userRepositoryProvider.getIfAvailable());
+        userRepositoryProvider.getIfAvailable(),
+        userMfaRepositoryProvider.getIfAvailable());
+  }
+
+  public JdbcAdminUserService(
+      JdbcTemplate jdbcTemplate,
+      PasswordEncoder passwordEncoder,
+      MfaOperationsDelegate mfaOperationsDelegate,
+      UserRepository userRepository,
+      UserMfaRepository userMfaRepository) {
+    this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate, "jdbcTemplate must not be null");
+    this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder must not be null");
+    this.mfaOperationsDelegate = mfaOperationsDelegate;
+    this.userRepository = userRepository;
+    this.userMfaRepository = userMfaRepository;
   }
 
   public JdbcAdminUserService(
@@ -55,14 +71,11 @@ public class JdbcAdminUserService implements AdminUserService {
       PasswordEncoder passwordEncoder,
       MfaOperationsDelegate mfaOperationsDelegate,
       UserRepository userRepository) {
-    this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate, "jdbcTemplate must not be null");
-    this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder must not be null");
-    this.mfaOperationsDelegate = mfaOperationsDelegate;
-    this.userRepository = userRepository;
+    this(jdbcTemplate, passwordEncoder, mfaOperationsDelegate, userRepository, null);
   }
 
   public JdbcAdminUserService(JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
-    this(jdbcTemplate, passwordEncoder, (MfaOperationsDelegate) null, (UserRepository) null);
+    this(jdbcTemplate, passwordEncoder, (MfaOperationsDelegate) null, (UserRepository) null, (UserMfaRepository) null);
   }
 
   private static UUID toUuid(String val) {
@@ -81,7 +94,7 @@ public class JdbcAdminUserService implements AdminUserService {
     String sql = """
         SELECT u.id, u.email, u.status, u.full_name AS iam_full_name,
                p.username, p.full_name, p.department, p.tenant,
-               COALESCE(mfa.is_enabled, false) AS mfa_enabled
+               COALESCE(mfa.enabled, false) AS mfa_enabled
         FROM iam_user u
         LEFT JOIN user_profiles p ON LOWER(u.email) = LOWER(p.email) OR LOWER(u.email) = LOWER(p.username)
         LEFT JOIN iam_user_mfa mfa ON u.id = mfa.user_id
@@ -368,24 +381,15 @@ public class JdbcAdminUserService implements AdminUserService {
   }
 
   @Override
-  public MfaSetupResponse initiateMfaSetup(String username) {
+  @Transactional
+  public void resetMfa(String username) {
     requireMfaCollaborators();
     User user = findUserOrThrow(username);
-    return mfaOperationsDelegate.initiateSetup(user.getId(), "ed-idp");
-  }
-
-  @Override
-  public void activateMfa(String username, String code) {
-    requireMfaCollaborators();
-    User user = findUserOrThrow(username);
-    mfaOperationsDelegate.activate(user.getId(), code);
-  }
-
-  @Override
-  public void disableMfa(String username, String codeOrPassword) {
-    requireMfaCollaborators();
-    User user = findUserOrThrow(username);
-    mfaOperationsDelegate.disable(user.getId(), codeOrPassword);
+    if (userMfaRepository != null) {
+      userMfaRepository.deleteByUserId(user.getId());
+    } else {
+      jdbcTemplate.update("DELETE FROM iam_user_mfa WHERE user_id = ?", user.getId().value());
+    }
   }
 
   private User findUserOrThrow(String username) {
