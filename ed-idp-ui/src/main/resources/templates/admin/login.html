@@ -67,12 +67,12 @@
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
 
       <div class="mb-3">
-        <label class="form-label small fw-semibold text-secondary" for="username">Username</label>
+        <label class="form-label small fw-semibold text-secondary" for="username">Username or Email</label>
         <div class="input-group">
           <span class="input-group-text bg-body text-secondary border-end-0">
             <i class="bi bi-person-fill"></i>
           </span>
-          <input class="form-control border-start-0 ps-1" type="text" id="username" name="username" placeholder="Enter username" required autofocus>
+          <input class="form-control border-start-0 ps-1" type="text" id="username" name="username" placeholder="admin or admin@example.com" required autofocus>
         </div>
       </div>
 
@@ -90,6 +90,11 @@
         <span>Sign In to Console</span>
         <i class="bi bi-arrow-right"></i>
       </button>
+
+      <div class="mt-3 p-2 bg-body-tertiary rounded-3 border text-center small text-secondary">
+        <span class="fw-semibold text-body-secondary"><i class="bi bi-info-circle me-1"></i>Seed credentials:</span>
+        <code>admin</code> / <code>admin-password</code>
+      </div>
     </form>
   </div>
 
