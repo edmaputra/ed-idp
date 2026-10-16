@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,19 @@ public class JdbcAdminUserService implements AdminUserService {
   private final MfaOperationsDelegate mfaOperationsDelegate;
   private final UserRepository userRepository;
 
+  @Autowired
+  public JdbcAdminUserService(
+      JdbcTemplate jdbcTemplate,
+      PasswordEncoder passwordEncoder,
+      ObjectProvider<MfaOperationsDelegate> mfaOperationsDelegateProvider,
+      ObjectProvider<UserRepository> userRepositoryProvider) {
+    this(
+        jdbcTemplate,
+        passwordEncoder,
+        mfaOperationsDelegateProvider.getIfAvailable(),
+        userRepositoryProvider.getIfAvailable());
+  }
+
   public JdbcAdminUserService(
       JdbcTemplate jdbcTemplate,
       PasswordEncoder passwordEncoder,
@@ -47,7 +62,7 @@ public class JdbcAdminUserService implements AdminUserService {
   }
 
   public JdbcAdminUserService(JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
-    this(jdbcTemplate, passwordEncoder, null, null);
+    this(jdbcTemplate, passwordEncoder, (MfaOperationsDelegate) null, (UserRepository) null);
   }
 
   private static UUID toUuid(String val) {
