@@ -149,6 +149,33 @@ class AdminServicesTests {
   }
 
   @Test
+  void mfaOperations_delegateProperly() {
+    var delegate = mock(io.github.edmaputra.iam.adapter.rest.MfaOperationsDelegate.class);
+    var userRepo = mock(io.github.edmaputra.iam.domain.repository.UserRepository.class);
+    var userService = new JdbcAdminUserService(jdbcTemplate, passwordEncoder, delegate, userRepo);
+
+    var userUuid = java.util.UUID.randomUUID();
+    var userId = new io.github.edmaputra.iam.domain.model.UserId(userUuid);
+    var user = new io.github.edmaputra.iam.domain.model.User(
+        userId, "alice@example.com", "hash", "Alice", io.github.edmaputra.iam.domain.model.UserStatus.ACTIVE,
+        false, java.time.Instant.now(), java.time.Instant.now()
+    );
+
+    when(userRepo.findByEmail("alice@example.com")).thenReturn(java.util.Optional.of(user));
+    when(delegate.getStatus(userId)).thenReturn(new io.github.edmaputra.iam.application.model.MfaStatusResponse(true, java.time.Instant.now()));
+    when(delegate.initiateSetup(userId, "ed-idp")).thenReturn(new io.github.edmaputra.iam.application.model.MfaSetupResponse("SECRET", "otpauth://...", List.of()));
+
+    assertThat(userService.getMfaStatus("alice@example.com").enabled()).isTrue();
+    assertThat(userService.initiateMfaSetup("alice@example.com").secret()).isEqualTo("SECRET");
+
+    userService.activateMfa("alice@example.com", "123456");
+    org.mockito.Mockito.verify(delegate).activate(userId, "123456");
+
+    userService.disableMfa("alice@example.com", "secret-code");
+    org.mockito.Mockito.verify(delegate).disable(userId, "secret-code");
+  }
+
+  @Test
   void countRoles_returnsCountFromJdbc() {
     var rbacService = new JdbcAdminRbacService(jdbcTemplate);
     when(jdbcTemplate.queryForObject(eq("SELECT count(*) FROM iam_role"), eq(Long.class)))

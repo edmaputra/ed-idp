@@ -123,4 +123,57 @@ public class AdminUserController {
     model.addAttribute("users", adminUserService.listUsers());
     return "admin/users/list :: userTableBody";
   }
+
+  @GetMapping("/{username}/mfa")
+  public String userMfaModal(@PathVariable String username, Model model) {
+    var userOpt = adminUserService.getUser(username);
+    if (userOpt.isEmpty()) {
+      return "redirect:" + uiProperties.basePath() + "/users";
+    }
+    model.addAttribute("user", userOpt.get());
+    model.addAttribute("mfaStatus", adminUserService.getMfaStatus(username));
+    return "admin/users/mfa-modal :: mfaModal";
+  }
+
+  @PostMapping("/{username}/mfa/setup")
+  public String userMfaSetup(@PathVariable String username, Model model) {
+    var userOpt = adminUserService.getUser(username);
+    if (userOpt.isEmpty()) {
+      return "redirect:" + uiProperties.basePath() + "/users";
+    }
+    var setupResponse = adminUserService.initiateMfaSetup(username);
+    model.addAttribute("user", userOpt.get());
+    model.addAttribute("setup", setupResponse);
+    return "admin/users/mfa-modal :: mfaSetupStep";
+  }
+
+  @PostMapping("/{username}/mfa/activate")
+  public String userMfaActivate(
+      @PathVariable String username,
+      @RequestParam String code,
+      Model model) {
+    var userOpt = adminUserService.getUser(username);
+    if (userOpt.isEmpty()) {
+      return "redirect:" + uiProperties.basePath() + "/users";
+    }
+    adminUserService.activateMfa(username, code);
+    model.addAttribute("user", userOpt.get());
+    model.addAttribute("mfaStatus", adminUserService.getMfaStatus(username));
+    return "admin/users/mfa-modal :: mfaActivatedStep";
+  }
+
+  @PostMapping("/{username}/mfa/disable")
+  public String userMfaDisable(
+      @PathVariable String username,
+      @RequestParam String codeOrPassword,
+      Model model) {
+    var userOpt = adminUserService.getUser(username);
+    if (userOpt.isEmpty()) {
+      return "redirect:" + uiProperties.basePath() + "/users";
+    }
+    adminUserService.disableMfa(username, codeOrPassword);
+    model.addAttribute("user", userOpt.get());
+    model.addAttribute("mfaStatus", adminUserService.getMfaStatus(username));
+    return "admin/users/mfa-modal :: mfaDisabledStep";
+  }
 }

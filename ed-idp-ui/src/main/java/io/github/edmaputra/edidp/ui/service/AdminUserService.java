@@ -1,5 +1,7 @@
 package io.github.edmaputra.edidp.ui.service;
 
+import io.github.edmaputra.iam.application.model.MfaSetupResponse;
+import io.github.edmaputra.iam.application.model.MfaStatusResponse;
 import java.util.List;
 
 /**
@@ -21,6 +23,7 @@ public interface AdminUserService {
    * @param roles assigned authorities or roles
    * @param groups assigned user groups
    * @param department assigned department
+   * @param mfaEnabled whether multi-factor authentication is active
    */
   record AdminUserSummary(
       String username,
@@ -30,7 +33,8 @@ public interface AdminUserService {
       String email,
       List<String> roles,
       List<String> groups,
-      String department
+      String department,
+      boolean mfaEnabled
   ) {
     public AdminUserSummary {
       if (username == null || username.isBlank()) {
@@ -57,8 +61,20 @@ public interface AdminUserService {
         String fullName,
         String email,
         List<String> roles,
+        List<String> groups,
         String department) {
-      this(username, enabled, tenantId, fullName, email, roles, List.of(), department);
+      this(username, enabled, tenantId, fullName, email, roles, groups, department, false);
+    }
+
+    public AdminUserSummary(
+        String username,
+        boolean enabled,
+        String tenantId,
+        String fullName,
+        String email,
+        List<String> roles,
+        String department) {
+      this(username, enabled, tenantId, fullName, email, roles, List.of(), department, false);
     }
   }
 
@@ -188,4 +204,36 @@ public interface AdminUserService {
    * @param enabled new enabled state
    */
   void setUserEnabled(String username, boolean enabled);
+
+  /**
+   * Retrieves MFA status for a user.
+   *
+   * @param username target username
+   * @return MFA status response
+   */
+  MfaStatusResponse getMfaStatus(String username);
+
+  /**
+   * Initiates MFA setup for a user, generating shared secret, QR code URI, and backup codes.
+   *
+   * @param username target username
+   * @return MFA setup response
+   */
+  MfaSetupResponse initiateMfaSetup(String username);
+
+  /**
+   * Activates MFA for a user after verifying the initial TOTP code.
+   *
+   * @param username target username
+   * @param code 6-digit TOTP code
+   */
+  void activateMfa(String username, String code);
+
+  /**
+   * Disables MFA for a user.
+   *
+   * @param username target username
+   * @param codeOrPassword verification code or password
+   */
+  void disableMfa(String username, String codeOrPassword);
 }

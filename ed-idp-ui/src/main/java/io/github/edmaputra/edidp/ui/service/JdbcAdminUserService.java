@@ -1,5 +1,10 @@
 package io.github.edmaputra.edidp.ui.service;
 
+import io.github.edmaputra.iam.adapter.rest.MfaOperationsDelegate;
+import io.github.edmaputra.iam.application.model.MfaSetupResponse;
+import io.github.edmaputra.iam.application.model.MfaStatusResponse;
+import io.github.edmaputra.iam.domain.model.User;
+import io.github.edmaputra.iam.domain.repository.UserRepository;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -27,10 +32,22 @@ public class JdbcAdminUserService implements AdminUserService {
 
   private final JdbcTemplate jdbcTemplate;
   private final PasswordEncoder passwordEncoder;
+  private final MfaOperationsDelegate mfaOperationsDelegate;
+  private final UserRepository userRepository;
 
-  public JdbcAdminUserService(JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
+  public JdbcAdminUserService(
+      JdbcTemplate jdbcTemplate,
+      PasswordEncoder passwordEncoder,
+      MfaOperationsDelegate mfaOperationsDelegate,
+      UserRepository userRepository) {
     this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate, "jdbcTemplate must not be null");
     this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder must not be null");
+    this.mfaOperationsDelegate = mfaOperationsDelegate;
+    this.userRepository = userRepository;
+  }
+
+  public JdbcAdminUserService(JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
+    this(jdbcTemplate, passwordEncoder, null, null);
   }
 
   private static UUID toUuid(String val) {
@@ -48,9 +65,11 @@ public class JdbcAdminUserService implements AdminUserService {
   public List<AdminUserSummary> listUsers() {
     String sql = """
         SELECT u.id, u.email, u.status, u.full_name AS iam_full_name,
-               p.username, p.full_name, p.department, p.tenant
+               p.username, p.full_name, p.department, p.tenant,
+               COALESCE(mfa.is_enabled, false) AS mfa_enabled
         FROM iam_user u
         LEFT JOIN user_profiles p ON LOWER(u.email) = LOWER(p.email) OR LOWER(u.email) = LOWER(p.username)
+        LEFT JOIN iam_user_mfa mfa ON u.id = mfa.user_id
         ORDER BY u.email ASC
         """;
 
@@ -66,10 +85,11 @@ public class JdbcAdminUserService implements AdminUserService {
       String rawFullName = rs.getString("full_name");
       final String fullName = (rawFullName != null && !rawFullName.isBlank()) ? rawFullName : rs.getString("iam_full_name");
       String dept = rs.getString("department");
+      boolean mfaEnabled = rs.getBoolean("mfa_enabled");
 
       UserAggregation agg = map.computeIfAbsent(
           email,
-          k -> new UserAggregation(id, email, enabled, tenantId, fullName, email, dept)
+          k -> new UserAggregation(id, email, enabled, tenantId, fullName, email, dept, mfaEnabled)
       );
     });
 
@@ -124,7 +144,8 @@ public class JdbcAdminUserService implements AdminUserService {
           agg.email,
           List.copyOf(agg.roles),
           List.copyOf(agg.groups),
-          agg.department
+          agg.department,
+          agg.mfaEnabled
       ));
     }
     return result;
@@ -324,6 +345,58 @@ public class JdbcAdminUserService implements AdminUserService {
     return ids.isEmpty() ? null : ids.getFirst();
   }
 
+  @Override
+  public MfaStatusResponse getMfaStatus(String username) {
+    requireMfaCollaborators();
+    User user = findUserOrThrow(username);
+    return mfaOperationsDelegate.getStatus(user.getId());
+  }
+
+  @Override
+  public MfaSetupResponse initiateMfaSetup(String username) {
+    requireMfaCollaborators();
+    User user = findUserOrThrow(username);
+    return mfaOperationsDelegate.initiateSetup(user.getId(), "ed-idp");
+  }
+
+  @Override
+  public void activateMfa(String username, String code) {
+    requireMfaCollaborators();
+    User user = findUserOrThrow(username);
+    mfaOperationsDelegate.activate(user.getId(), code);
+  }
+
+  @Override
+  public void disableMfa(String username, String codeOrPassword) {
+    requireMfaCollaborators();
+    User user = findUserOrThrow(username);
+    mfaOperationsDelegate.disable(user.getId(), codeOrPassword);
+  }
+
+  private User findUserOrThrow(String username) {
+    if (username == null || username.isBlank()) {
+      throw new IllegalArgumentException("Username must not be blank.");
+    }
+    return userRepository.findByEmail(username)
+        .or(() -> {
+          List<String> emails = jdbcTemplate.query(
+              "SELECT email FROM iam_user WHERE LOWER(email) = LOWER(?) LIMIT 1",
+              (rs, rowNum) -> rs.getString("email"),
+              username);
+          if (!emails.isEmpty()) {
+            return userRepository.findByEmail(emails.getFirst());
+          }
+          return Optional.empty();
+        })
+        .orElseThrow(() -> new IllegalArgumentException("User not found with username/email: " + username));
+  }
+
+  private void requireMfaCollaborators() {
+    if (mfaOperationsDelegate == null || userRepository == null) {
+      throw new IllegalStateException("MFA operations delegate and user repository must be configured.");
+    }
+  }
+
   private static final class UserAggregation {
     final String id;
     final String email;
@@ -332,6 +405,7 @@ public class JdbcAdminUserService implements AdminUserService {
     final String fullName;
     final String username;
     final String department;
+    final boolean mfaEnabled;
     final List<String> roles = new ArrayList<>();
     final List<String> groups = new ArrayList<>();
 
@@ -342,7 +416,8 @@ public class JdbcAdminUserService implements AdminUserService {
         String tenantId,
         String fullName,
         String username,
-        String department) {
+        String department,
+        boolean mfaEnabled) {
       this.id = id;
       this.email = email;
       this.enabled = enabled;
@@ -350,6 +425,7 @@ public class JdbcAdminUserService implements AdminUserService {
       this.fullName = fullName;
       this.username = username;
       this.department = department;
+      this.mfaEnabled = mfaEnabled;
     }
   }
 }

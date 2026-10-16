@@ -370,4 +370,55 @@ class AdminIamRestControllerTests {
 
     verify(adminRbacService).updateGroup(any(AdminRbacService.UpdateGroupCommand.class));
   }
+
+  @Test
+  void getUserMfaStatus_returnsOk() throws Exception {
+    when(adminUserService.getMfaStatus("alice")).thenReturn(new io.github.edmaputra.iam.application.model.MfaStatusResponse(true, java.time.Instant.now()));
+
+    mockMvc.perform(get("/admin/api/users/alice/mfa/status"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.enabled").value(true));
+  }
+
+  @Test
+  void initiateUserMfaSetup_returnsOk() throws Exception {
+    when(adminUserService.initiateMfaSetup("alice"))
+        .thenReturn(new io.github.edmaputra.iam.application.model.MfaSetupResponse("JBSWY3DPEHPK3PXP", "otpauth://totp/ed-idp:alice?secret=JBSWY3DPEHPK3PXP", List.of("A1B2-C3D4")));
+
+    mockMvc.perform(post("/admin/api/users/alice/mfa/setup"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.secret").value("JBSWY3DPEHPK3PXP"))
+        .andExpect(jsonPath("$.qrCodeUri").value("otpauth://totp/ed-idp:alice?secret=JBSWY3DPEHPK3PXP"))
+        .andExpect(jsonPath("$.backupCodes[0]").value("A1B2-C3D4"));
+  }
+
+  @Test
+  void activateUserMfa_returnsOk() throws Exception {
+    mockMvc.perform(post("/admin/api/users/alice/mfa/activate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                  "code": "123456"
+                }
+                """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("MFA activated successfully"));
+
+    verify(adminUserService).activateMfa("alice", "123456");
+  }
+
+  @Test
+  void disableUserMfa_returnsOk() throws Exception {
+    mockMvc.perform(post("/admin/api/users/alice/mfa/disable")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                {
+                  "codeOrPassword": "secret-pwd"
+                }
+                """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("MFA disabled successfully"));
+
+    verify(adminUserService).disableMfa("alice", "secret-pwd");
+  }
 }

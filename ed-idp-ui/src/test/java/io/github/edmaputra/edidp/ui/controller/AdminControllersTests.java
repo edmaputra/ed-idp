@@ -208,6 +208,78 @@ class AdminControllersTests {
   }
 
   @Test
+  void userMfaModal_returnsModalFragment() throws Exception {
+    var user = new AdminUserService.AdminUserSummary(
+        "alice", true, "demo", "Alice Smith", "alice@example.com",
+        List.of("ROLE_USER"), List.of("Engineering"), "IT", false
+    );
+    when(adminUserService.getUser("alice")).thenReturn(java.util.Optional.of(user));
+    when(adminUserService.getMfaStatus("alice")).thenReturn(new io.github.edmaputra.iam.application.model.MfaStatusResponse(false, null));
+
+    userMockMvc.perform(get("/admin/users/alice/mfa"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/users/mfa-modal :: mfaModal"))
+        .andExpect(model().attribute("user", user))
+        .andExpect(model().attributeExists("mfaStatus"));
+  }
+
+  @Test
+  void userMfaSetup_returnsSetupStepFragment() throws Exception {
+    var user = new AdminUserService.AdminUserSummary(
+        "alice", true, "demo", "Alice Smith", "alice@example.com",
+        List.of("ROLE_USER"), List.of("Engineering"), "IT", false
+    );
+    when(adminUserService.getUser("alice")).thenReturn(java.util.Optional.of(user));
+    when(adminUserService.initiateMfaSetup("alice")).thenReturn(
+        new io.github.edmaputra.iam.application.model.MfaSetupResponse("SECRETKEY", "otpauth://uri", List.of("BACKUP1"))
+    );
+
+    userMockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/admin/users/alice/mfa/setup"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/users/mfa-modal :: mfaSetupStep"))
+        .andExpect(model().attribute("user", user))
+        .andExpect(model().attributeExists("setup"));
+  }
+
+  @Test
+  void userMfaActivate_returnsActivatedStepFragment() throws Exception {
+    var user = new AdminUserService.AdminUserSummary(
+        "alice", true, "demo", "Alice Smith", "alice@example.com",
+        List.of("ROLE_USER"), List.of("Engineering"), "IT", false
+    );
+    when(adminUserService.getUser("alice")).thenReturn(java.util.Optional.of(user));
+    when(adminUserService.getMfaStatus("alice")).thenReturn(new io.github.edmaputra.iam.application.model.MfaStatusResponse(true, java.time.Instant.now()));
+
+    userMockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/admin/users/alice/mfa/activate")
+            .param("code", "123456"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/users/mfa-modal :: mfaActivatedStep"))
+        .andExpect(model().attribute("user", user))
+        .andExpect(model().attributeExists("mfaStatus"));
+
+    org.mockito.Mockito.verify(adminUserService).activateMfa("alice", "123456");
+  }
+
+  @Test
+  void userMfaDisable_returnsDisabledStepFragment() throws Exception {
+    var user = new AdminUserService.AdminUserSummary(
+        "alice", true, "demo", "Alice Smith", "alice@example.com",
+        List.of("ROLE_USER"), List.of("Engineering"), "IT", true
+    );
+    when(adminUserService.getUser("alice")).thenReturn(java.util.Optional.of(user));
+    when(adminUserService.getMfaStatus("alice")).thenReturn(new io.github.edmaputra.iam.application.model.MfaStatusResponse(false, null));
+
+    userMockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/admin/users/alice/mfa/disable")
+            .param("codeOrPassword", "secret-password"))
+        .andExpect(status().isOk())
+        .andExpect(view().name("admin/users/mfa-modal :: mfaDisabledStep"))
+        .andExpect(model().attribute("user", user))
+        .andExpect(model().attributeExists("mfaStatus"));
+
+    org.mockito.Mockito.verify(adminUserService).disableMfa("alice", "secret-password");
+  }
+
+  @Test
   void permissionsTableFragment_returnsFragment() throws Exception {
     when(adminRbacService.listPermissions()).thenReturn(List.of());
 

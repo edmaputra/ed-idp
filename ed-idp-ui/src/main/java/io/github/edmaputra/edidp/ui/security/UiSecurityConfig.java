@@ -1,6 +1,9 @@
 package io.github.edmaputra.edidp.ui.security;
 
+import io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandler;
+import io.github.edmaputra.edidp.oauth.mfa.MfaChallengeService;
 import io.github.edmaputra.edidp.ui.UiProperties;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,6 +11,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
@@ -31,9 +35,12 @@ public class UiSecurityConfig {
 
   @Bean
   @Order(3) // Runs before defaultSecurityFilterChain (@Order(4)) in ed-idp-core
-  SecurityFilterChain adminUiSecurityFilterChain(HttpSecurity http) throws Exception {
+  SecurityFilterChain adminUiSecurityFilterChain(
+      HttpSecurity http,
+      ObjectProvider<MfaChallengeService> mfaChallengeServiceProvider) throws Exception {
     String basePath = uiProperties.basePath();
     String pattern = basePath.endsWith("/") ? basePath + "**" : basePath + "/**";
+    MfaChallengeService mfaChallengeService = mfaChallengeServiceProvider.getIfAvailable();
 
     http
         .securityMatcher(new OrRequestMatcher(
@@ -44,17 +51,31 @@ public class UiSecurityConfig {
             .requestMatchers("/ui-assets/**").permitAll()
             .requestMatchers(basePath + "/login").permitAll()
             .requestMatchers(pattern).hasAnyRole("ADMIN", "USER")
-        )
-        .formLogin(form -> form
-            .loginPage(basePath + "/login")
-            .defaultSuccessUrl(basePath + "/dashboard", true)
-            .permitAll()
-        )
-        .logout(logout -> logout
-            .logoutUrl(basePath + "/logout")
-            .logoutSuccessUrl(basePath + "/login?logout")
-            .permitAll()
         );
+
+    if (mfaChallengeService != null) {
+      http.formLogin(form -> form
+          .loginPage(basePath + "/login")
+          .successHandler(new MfaAuthenticationSuccessHandler(
+              mfaChallengeService,
+              new HttpSessionSecurityContextRepository(),
+              "/login/mfa-challenge",
+              basePath + "/dashboard"))
+          .permitAll()
+      );
+    } else {
+      http.formLogin(form -> form
+          .loginPage(basePath + "/login")
+          .defaultSuccessUrl(basePath + "/dashboard", true)
+          .permitAll()
+      );
+    }
+
+    http.logout(logout -> logout
+        .logoutUrl(basePath + "/logout")
+        .logoutSuccessUrl(basePath + "/login?logout")
+        .permitAll()
+    );
 
     return http.build();
   }

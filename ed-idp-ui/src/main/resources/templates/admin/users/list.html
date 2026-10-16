@@ -98,13 +98,14 @@
                 <th>Tenant</th>
                 <th>Roles</th>
                 <th>Groups</th>
+                <th>2FA</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="users-tbody">
               <tr th:if="${#lists.isEmpty(users)}">
-                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">
                   No users found in directory.
                 </td>
               </tr>
@@ -129,10 +130,21 @@
                         th:text="${grp}">Engineering</span>
                 </td>
                 <td>
+                  <span th:if="${user.mfaEnabled}" class="badge badge-success" style="font-size: 0.75rem;">2FA On</span>
+                  <span th:unless="${user.mfaEnabled}" class="badge" style="background: #e2e8f0; color: #64748b; font-size: 0.75rem;">2FA Off</span>
+                </td>
+                <td>
                   <span th:if="${user.enabled}" class="badge badge-success">Active</span>
                   <span th:unless="${user.enabled}" class="badge badge-danger">Suspended</span>
                 </td>
                 <td style="white-space: nowrap;">
+                  <button class="btn btn-secondary"
+                          style="font-size: 0.75rem; padding: 0.25rem 0.6rem; margin-right: 0.35rem;"
+                          th:attr="hx-get=@{${basePath} + '/users/' + ${user.username} + '/mfa'}"
+                          hx-target="#mfa-user-modal"
+                          hx-swap="innerHTML">
+                    🔐 2FA
+                  </button>
                   <button class="btn btn-secondary"
                           style="font-size: 0.75rem; padding: 0.25rem 0.6rem; margin-right: 0.35rem;"
                           th:attr="hx-get=@{${basePath} + '/users/' + ${user.username} + '/edit'}"
@@ -161,6 +173,7 @@
 </div>
 
 <div id="edit-user-modal"></div>
+<div id="mfa-user-modal"></div>
 <div th:replace="~{admin/fragments/layout :: toastContainer}"></div>
 <script th:replace="~{admin/fragments/layout :: toastScript}"></script>
 
