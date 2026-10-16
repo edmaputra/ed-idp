@@ -44,12 +44,18 @@ public class UiSecurityConfig {
 
     http
         .securityMatcher(new OrRequestMatcher(
+            PathPatternRequestMatcher.withDefaults().matcher(basePath),
             PathPatternRequestMatcher.withDefaults().matcher(pattern),
-            PathPatternRequestMatcher.withDefaults().matcher("/ui-assets/**")
+            PathPatternRequestMatcher.withDefaults().matcher("/ui-assets/**"),
+            PathPatternRequestMatcher.withDefaults().matcher("/login"),
+            PathPatternRequestMatcher.withDefaults().matcher("/")
         ))
         .authorizeHttpRequests(authorize -> authorize
             .requestMatchers("/ui-assets/**").permitAll()
             .requestMatchers(basePath + "/login").permitAll()
+            .requestMatchers("/login").permitAll()
+            .requestMatchers("/").permitAll()
+            .requestMatchers(basePath).hasAnyRole("ADMIN", "USER")
             .requestMatchers(pattern).hasAnyRole("ADMIN", "USER")
         );
 
