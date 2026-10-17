@@ -1,5 +1,6 @@
 package io.github.edmaputra.edidp.oauth.mfa;
 
+import io.github.edmaputra.iam.adapter.persistence.crypto.AesGcmEncryptor;
 import io.github.edmaputra.iam.adapter.security.SecurityContextAccessor;
 import io.github.edmaputra.iam.adapter.security.jwt.JwtProperties;
 import io.github.edmaputra.iam.adapter.security.jwt.JwtTokenProvider;
@@ -32,5 +33,12 @@ public class IamAuthBridgeConfig {
   @ConditionalOnMissingBean(CurrentActorProvider.class)
   CurrentActorProvider iamCurrentActorProvider() {
     return new SecurityContextAccessor();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(AesGcmEncryptor.class)
+  AesGcmEncryptor iamAesGcmEncryptor(
+      @Value("${iam.mfa.encryption-key:${iam.jwt.secret:iam-default-fallback-mfa-encryption-key-for-credentials-at-rest!}}") String encryptionKey) {
+    return new AesGcmEncryptor(encryptionKey);
   }
 }

@@ -79,8 +79,14 @@ class MfaAuthenticationSuccessHandlerTests {
     handler.onAuthenticationSuccess(request, response, auth);
 
     assertThat(response.getRedirectedUrl()).isEqualTo("/login/mfa-challenge");
-    assertThat(request.getSession().getAttribute(MFA_PENDING_AUTH_SESSION_KEY)).isEqualTo(auth);
+    Authentication pendingAuth = (Authentication) request.getSession().getAttribute(MFA_PENDING_AUTH_SESSION_KEY);
+    assertThat(pendingAuth).isNotNull();
+    assertThat(pendingAuth.getPrincipal()).isEqualTo("bob@example.com");
+    assertThat(pendingAuth.getCredentials()).isNull();
+    assertThat(pendingAuth.getAuthorities()).extracting("authority").containsExactly("ROLE_USER");
     assertThat(request.getSession().getAttribute(MFA_TARGET_URL_SESSION_KEY)).isEqualTo("/custom-target");
+    assertThat(request.getSession().getAttribute(MfaAuthenticationSuccessHandler.MFA_CHALLENGE_EXPIRES_AT_KEY)).isNotNull();
+    assertThat(request.getSession().getAttribute(MfaAuthenticationSuccessHandler.MFA_ATTEMPT_COUNT_KEY)).isEqualTo(0);
     assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
   }
 }

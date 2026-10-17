@@ -146,10 +146,12 @@
 
     <div th:if="${param.error != null}" class="alert-error">
         <span>⚠️</span>
-        <span>Invalid verification code. Please check and try again.</span>
+        <span th:if="${param.error[0] == 'expired'}">Verification session expired. Please log in again.</span>
+        <span th:if="${param.error[0] == 'locked'}">Too many failed attempts. Account locked temporarily for security. Please log in again.</span>
+        <span th:if="${param.error[0] != 'expired' and param.error[0] != 'locked'}">Invalid verification code. Please check and try again.</span>
     </div>
 
-    <form method="post" th:action="@{/login/mfa-challenge}">
+    <form th:if="${param.error == null or (param.error[0] != 'expired' and param.error[0] != 'locked')}" method="post" th:action="@{/login/mfa-challenge}">
         <input name="_csrf" type="hidden" th:if="${_csrf != null}" th:value="${_csrf.token}" />
 
         <div class="form-group">

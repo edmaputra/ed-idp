@@ -1,11 +1,15 @@
 package io.github.edmaputra.edidp.oauth.mfa;
 
+import static io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandler.MAX_MFA_ATTEMPTS;
+import static io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandler.MFA_ATTEMPT_COUNT_KEY;
+import static io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandler.MFA_CHALLENGE_EXPIRES_AT_KEY;
 import static io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandler.MFA_PENDING_AUTH_SESSION_KEY;
 import static io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandler.MFA_TARGET_URL_SESSION_KEY;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -43,11 +47,25 @@ public class MfaChallengeController {
   }
 
   @GetMapping
-  public String challengeView(HttpSession session, Model model) {
+  public String challengeView(
+      @RequestParam(value = "error", required = false) String error,
+      HttpSession session,
+      Model model) {
+    if ("expired".equals(error) || "locked".equals(error)) {
+      return "login-mfa-challenge";
+    }
+
     Authentication pendingAuth = (Authentication) session.getAttribute(MFA_PENDING_AUTH_SESSION_KEY);
     if (pendingAuth == null) {
       return "redirect:/login";
     }
+
+    Instant expiresAt = (Instant) session.getAttribute(MFA_CHALLENGE_EXPIRES_AT_KEY);
+    if (expiresAt != null && Instant.now().isAfter(expiresAt)) {
+      clearMfaSession(session);
+      return "redirect:/login/mfa-challenge?error=expired";
+    }
+
     model.addAttribute("username", pendingAuth.getName());
     return "login-mfa-challenge";
   }
@@ -64,8 +82,27 @@ public class MfaChallengeController {
       return "redirect:/login";
     }
 
+    Instant expiresAt = (Instant) session.getAttribute(MFA_CHALLENGE_EXPIRES_AT_KEY);
+    if (expiresAt != null && Instant.now().isAfter(expiresAt)) {
+      clearMfaSession(session);
+      return "redirect:/login/mfa-challenge?error=expired";
+    }
+
+    Integer attempts = (Integer) session.getAttribute(MFA_ATTEMPT_COUNT_KEY);
+    int currentAttempts = (attempts != null) ? attempts : 0;
+    if (currentAttempts >= MAX_MFA_ATTEMPTS) {
+      clearMfaSession(session);
+      return "redirect:/login/mfa-challenge?error=locked";
+    }
+
     boolean verified = mfaChallengeService.verifyCode(pendingAuth.getName(), code);
     if (!verified) {
+      currentAttempts++;
+      if (currentAttempts >= MAX_MFA_ATTEMPTS) {
+        clearMfaSession(session);
+        return "redirect:/login/mfa-challenge?error=locked";
+      }
+      session.setAttribute(MFA_ATTEMPT_COUNT_KEY, currentAttempts);
       return "redirect:/login/mfa-challenge?error=invalid_code";
     }
 
@@ -86,12 +123,65 @@ public class MfaChallengeController {
     securityContextRepository.saveContext(newContext, request, response);
 
     String targetUrl = (String) session.getAttribute(MFA_TARGET_URL_SESSION_KEY);
+    clearMfaSession(session);
+
+    String safeRedirect = sanitizeTargetUrl(targetUrl, request);
+    return "redirect:" + safeRedirect;
+  }
+
+  static String sanitizeTargetUrl(String targetUrl, HttpServletRequest request) {
+    if (targetUrl == null || targetUrl.isBlank()) {
+      return "/";
+    }
+
+    if (isSafeLocalUrl(targetUrl)) {
+      return targetUrl;
+    }
+
+    try {
+      java.net.URI uri = java.net.URI.create(targetUrl);
+      if (uri.isAbsolute() && uri.getHost() != null && request != null) {
+        String serverName = request.getServerName();
+        if (serverName != null && uri.getHost().equalsIgnoreCase(serverName)) {
+          int serverPort = request.getServerPort();
+          int uriPort = uri.getPort();
+          boolean portMatches = (uriPort == -1)
+              || (uriPort == serverPort)
+              || ("http".equalsIgnoreCase(uri.getScheme()) && serverPort == 80 && uriPort == 80)
+              || ("https".equalsIgnoreCase(uri.getScheme()) && serverPort == 443 && uriPort == 443);
+
+          if (portMatches) {
+            String path = uri.getRawPath();
+            String query = uri.getRawQuery();
+            String candidate = (path != null ? path : "/") + (query != null ? "?" + query : "");
+            if (isSafeLocalUrl(candidate)) {
+              return candidate;
+            }
+          }
+        }
+      }
+    } catch (Exception ignored) {
+      // Malformed URI, fall back to root
+    }
+
+    return "/";
+  }
+
+  static boolean isSafeLocalUrl(String url) {
+    if (url == null || url.isBlank()) {
+      return false;
+    }
+    return url.startsWith("/")
+        && !url.startsWith("//")
+        && !url.contains("\\")
+        && !url.contains("\r")
+        && !url.contains("\n");
+  }
+
+  private void clearMfaSession(HttpSession session) {
     session.removeAttribute(MFA_PENDING_AUTH_SESSION_KEY);
     session.removeAttribute(MFA_TARGET_URL_SESSION_KEY);
-
-    if (targetUrl != null && !targetUrl.isBlank()) {
-      return "redirect:" + targetUrl;
-    }
-    return "redirect:/";
+    session.removeAttribute(MFA_CHALLENGE_EXPIRES_AT_KEY);
+    session.removeAttribute(MFA_ATTEMPT_COUNT_KEY);
   }
 }

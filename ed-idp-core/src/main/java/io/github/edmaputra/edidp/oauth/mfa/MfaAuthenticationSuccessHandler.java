@@ -4,7 +4,9 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Objects;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,6 +29,10 @@ public class MfaAuthenticationSuccessHandler implements AuthenticationSuccessHan
 
   public static final String MFA_PENDING_AUTH_SESSION_KEY = "MFA_PENDING_AUTH";
   public static final String MFA_TARGET_URL_SESSION_KEY = "MFA_TARGET_URL";
+  public static final String MFA_CHALLENGE_EXPIRES_AT_KEY = "MFA_CHALLENGE_EXPIRES_AT";
+  public static final String MFA_ATTEMPT_COUNT_KEY = "MFA_ATTEMPT_COUNT";
+  public static final long MFA_CHALLENGE_TTL_SECONDS = 300L;
+  public static final int MAX_MFA_ATTEMPTS = 5;
 
   private final MfaChallengeService mfaChallengeService;
   private final SecurityContextRepository securityContextRepository;
@@ -70,9 +76,19 @@ public class MfaAuthenticationSuccessHandler implements AuthenticationSuccessHan
     SavedRequest savedRequest = requestCache.getRequest(request, response);
     String targetUrl = (savedRequest != null) ? savedRequest.getRedirectUrl() : this.defaultTargetUrl;
 
-    // Preserve pending authentication in session
-    request.getSession().setAttribute(MFA_PENDING_AUTH_SESSION_KEY, authentication);
-    request.getSession().setAttribute(MFA_TARGET_URL_SESSION_KEY, targetUrl);
+    // Sanitize credentials from authentication token before preserving in session
+    Authentication sanitizedAuth = UsernamePasswordAuthenticationToken.authenticated(
+        authentication.getPrincipal(),
+        null,
+        authentication.getAuthorities()
+    );
+
+    // Preserve pending authentication in session with TTL and attempt counter
+    var session = request.getSession();
+    session.setAttribute(MFA_PENDING_AUTH_SESSION_KEY, sanitizedAuth);
+    session.setAttribute(MFA_TARGET_URL_SESSION_KEY, targetUrl);
+    session.setAttribute(MFA_CHALLENGE_EXPIRES_AT_KEY, Instant.now().plusSeconds(MFA_CHALLENGE_TTL_SECONDS));
+    session.setAttribute(MFA_ATTEMPT_COUNT_KEY, 0);
 
     // Clear SecurityContext until second factor is satisfied
     SecurityContext emptyContext = SecurityContextHolder.createEmptyContext();
