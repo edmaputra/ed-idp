@@ -14,9 +14,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import tools.jackson.databind.JsonNode;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
@@ -61,22 +67,21 @@ class TokenRevokerAndIntrospectionIntegrationTests extends AuthServerIntegration
   }
 
   private String getAccessToken(String clientId, String clientSecret) throws Exception {
-    org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-    headers.setContentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED);
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-    org.springframework.util.MultiValueMap<String, String> form = new org.springframework.util.LinkedMultiValueMap<>();
+    MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
     form.add("grant_type", "client_credentials");
     form.add("scope", "read write");
 
-    org.springframework.http.HttpEntity<org.springframework.util.MultiValueMap<String, String>> request =
-        new org.springframework.http.HttpEntity<>(form, headers);
+    HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(form, headers);
 
-    org.springframework.http.ResponseEntity<String> response = restTemplate
+    ResponseEntity<String> response = restTemplate
         .withBasicAuth(clientId, clientSecret)
         .postForEntity("/oauth2/token", request, String.class);
 
-    assertThat(response.getStatusCode()).isEqualTo(org.springframework.http.HttpStatus.OK);
-    tools.jackson.databind.JsonNode body = objectMapper.readTree(response.getBody());
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    JsonNode body = objectMapper.readTree(response.getBody());
     return body.path("access_token").asText();
   }
 

@@ -14,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.ui.ConcurrentModel;
@@ -64,7 +65,7 @@ class OAuth2AuthorizationConsentControllerTests {
     when(authentication.getName()).thenReturn("demo-user");
     RegisteredClient client = RegisteredClient.withId("internal-uuid-123")
         .clientId("demo-client")
-        .authorizationGrantType(org.springframework.security.oauth2.core.AuthorizationGrantType.AUTHORIZATION_CODE)
+        .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
         .redirectUri("http://client.example.com/callback")
         .scope("openid")
         .scope("profile")
@@ -101,7 +102,7 @@ class OAuth2AuthorizationConsentControllerTests {
     when(authentication.getName()).thenReturn("demo-user");
     RegisteredClient client = RegisteredClient.withId("internal-uuid-123")
         .clientId("demo-client")
-        .authorizationGrantType(org.springframework.security.oauth2.core.AuthorizationGrantType.AUTHORIZATION_CODE)
+        .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
         .redirectUri("http://client.example.com/callback")
         .scope("openid")
         .build();
@@ -145,7 +146,7 @@ class OAuth2AuthorizationConsentControllerTests {
     when(authentication.getName()).thenReturn("demo-user");
     RegisteredClient client = RegisteredClient.withId("uuid-456")
         .clientId("demo-client")
-        .authorizationGrantType(org.springframework.security.oauth2.core.AuthorizationGrantType.AUTHORIZATION_CODE)
+        .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
         .redirectUri("http://client.example.com/callback")
         .scope("openid")
         .build();
@@ -173,7 +174,7 @@ class OAuth2AuthorizationConsentControllerTests {
     when(authentication.getName()).thenReturn("demo-user");
     RegisteredClient client = RegisteredClient.withId("uuid-789")
         .clientId("demo-client")
-        .authorizationGrantType(org.springframework.security.oauth2.core.AuthorizationGrantType.AUTHORIZATION_CODE)
+        .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
         .redirectUri("http://client.example.com/callback")
         .scope("read")
         .scope("write")
@@ -223,7 +224,7 @@ class OAuth2AuthorizationConsentControllerTests {
     when(authentication.getName()).thenReturn("demo-user");
     RegisteredClient client = RegisteredClient.withId("uuid-123")
         .clientId("demo-client")
-        .authorizationGrantType(org.springframework.security.oauth2.core.AuthorizationGrantType.AUTHORIZATION_CODE)
+        .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
         .redirectUri("http://client.example.com/callback")
         .scope("openid")
         .build();
@@ -248,7 +249,7 @@ class OAuth2AuthorizationConsentControllerTests {
     when(authentication.getName()).thenReturn("demo-user");
     RegisteredClient client = RegisteredClient.withId("uuid-123")
         .clientId("demo-client")
-        .authorizationGrantType(org.springframework.security.oauth2.core.AuthorizationGrantType.AUTHORIZATION_CODE)
+        .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
         .redirectUri("http://client.example.com/callback")
         .scope("openid")
         .build();
