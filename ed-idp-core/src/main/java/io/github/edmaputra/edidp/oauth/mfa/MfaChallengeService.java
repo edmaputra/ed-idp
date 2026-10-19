@@ -86,9 +86,17 @@ public class MfaChallengeService {
     UserMfa mfa = mfaOpt.get();
     String normalizedCode = code.trim();
 
-    // 1. Try TOTP code verification with +/- 1 window step
-    boolean totpValid = TotpGenerator.verifyTotp(mfa.getSecret(), normalizedCode, Instant.now(), TOTP_WINDOW_STEPS);
-    if (totpValid) {
+    // 1. Try TOTP code verification with +/- 1 window step and replay protection (RFC 6238 §5.2)
+    java.util.OptionalLong verifiedStep = TotpGenerator.verifyTotpStep(
+        mfa.getSecret(),
+        normalizedCode,
+        Instant.now(),
+        TOTP_WINDOW_STEPS,
+        mfa.getLastVerifiedStep()
+    );
+    if (verifiedStep.isPresent()) {
+      mfa.markStepVerified(verifiedStep.getAsLong());
+      userMfaRepository.save(mfa);
       log.info("MFA verification succeeded with TOTP code for user [{}]", usernameOrEmail);
       return true;
     }

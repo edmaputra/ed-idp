@@ -184,14 +184,15 @@ class AdminServicesTests {
 
     assertThat(userService.getMfaStatus("alice@example.com").enabled()).isTrue();
 
-    // Reset MFA via UserMfaRepository
+    // Reset MFA via MfaOperationsDelegate
     userService.resetMfa("alice@example.com");
-    verify(userMfaRepo).deleteByUserId(userId);
+    verify(delegate).resetMfa(userId);
 
-    // Reset MFA fallback without UserMfaRepository
-    var userServiceFallback = new JdbcAdminUserService(jdbcTemplate, passwordEncoder, delegate, userRepo, null);
-    userServiceFallback.resetMfa("alice@example.com");
-    verify(jdbcTemplate).update(eq("DELETE FROM iam_user_mfa WHERE user_id = ?"), eq(userUuid));
+    // Verify exception when collaborators are not configured
+    var userServiceWithoutMfa = new JdbcAdminUserService(jdbcTemplate, passwordEncoder);
+    assertThatThrownBy(() -> userServiceWithoutMfa.resetMfa("alice@example.com"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("MFA operations delegate and user repository must be configured.");
   }
 
   @Test

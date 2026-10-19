@@ -385,11 +385,7 @@ public class JdbcAdminUserService implements AdminUserService {
   public void resetMfa(String username) {
     requireMfaCollaborators();
     User user = findUserOrThrow(username);
-    if (userMfaRepository != null) {
-      userMfaRepository.deleteByUserId(user.getId());
-    } else {
-      jdbcTemplate.update("DELETE FROM iam_user_mfa WHERE user_id = ?", user.getId().value());
-    }
+    mfaOperationsDelegate.resetMfa(user.getId());
   }
 
   private User findUserOrThrow(String username) {

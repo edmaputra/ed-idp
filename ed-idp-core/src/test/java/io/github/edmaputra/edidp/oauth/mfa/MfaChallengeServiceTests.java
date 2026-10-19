@@ -135,6 +135,27 @@ class MfaChallengeServiceTests {
 
     String validTotp = TotpGenerator.generateCurrentTotp(secret);
     assertThat(service.verifyCode("eve@example.com", validTotp)).isTrue();
+    verify(userMfaRepository).save(mfa);
+    assertThat(mfa.getLastVerifiedStep()).isNotNull();
+  }
+
+  @Test
+  void verifyCodePreventsTotpReplayAttack() {
+    User user = User.create("replay@example.com", "hash", "Replay", false);
+    String secret = TotpGenerator.generateSecret();
+    UserMfa mfa = UserMfa.create(user.getId(), secret, List.of());
+    mfa.activate();
+
+    when(userRepository.findByEmail("replay@example.com")).thenReturn(Optional.of(user));
+    when(userMfaRepository.findByUserId(user.getId())).thenReturn(Optional.of(mfa));
+
+    String validTotp = TotpGenerator.generateCurrentTotp(secret);
+    // First attempt succeeds
+    assertThat(service.verifyCode("replay@example.com", validTotp)).isTrue();
+    assertThat(mfa.getLastVerifiedStep()).isNotNull();
+
+    // Replay attempt fails immediately
+    assertThat(service.verifyCode("replay@example.com", validTotp)).isFalse();
   }
 
   @Test
