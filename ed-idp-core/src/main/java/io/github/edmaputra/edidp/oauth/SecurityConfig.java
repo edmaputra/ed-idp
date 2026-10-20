@@ -1,5 +1,7 @@
 package io.github.edmaputra.edidp.oauth;
 
+import io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandler;
+import io.github.edmaputra.edidp.oauth.mfa.MfaChallengeService;
 import io.github.edmaputra.edidp.tenancy.TenantContextFilter;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -152,14 +154,23 @@ public class SecurityConfig {
   }
 
   @Bean
+  MfaAuthenticationSuccessHandler mfaAuthenticationSuccessHandler(MfaChallengeService mfaChallengeService) {
+    return new MfaAuthenticationSuccessHandler(mfaChallengeService);
+  }
+
+  @Bean
   @Order(5)
-  SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+  SecurityFilterChain defaultSecurityFilterChain(
+      HttpSecurity http,
+      MfaAuthenticationSuccessHandler mfaAuthenticationSuccessHandler) throws Exception {
     http
         .authorizeHttpRequests((authorize) -> authorize
-            .requestMatchers("/logged-out", "/t/*/.well-known/openid-configuration", "/t/*/oauth2/jwks")
+            .requestMatchers("/logged-out", "/t/*/.well-known/openid-configuration", "/t/*/oauth2/jwks", "/login/mfa-challenge")
             .permitAll()
             .anyRequest().authenticated())
-        .formLogin(Customizer.withDefaults());
+        .formLogin(form -> form
+            .successHandler(mfaAuthenticationSuccessHandler)
+        );
 
     return http.build();
   }

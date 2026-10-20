@@ -7,7 +7,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * Controller for managing and viewing OAuth 2.1 registered clients via HTMX and Thymeleaf.
@@ -44,16 +47,16 @@ public class AdminClientController {
     return "admin/clients/list :: clientTableBody";
   }
 
-  @org.springframework.web.bind.annotation.PostMapping
+  @PostMapping
   public String createClient(
-      @org.springframework.web.bind.annotation.RequestParam String clientId,
-      @org.springframework.web.bind.annotation.RequestParam(required = false, defaultValue = "") String clientSecret,
-      @org.springframework.web.bind.annotation.RequestParam(required = false, defaultValue = "") String clientName,
-      @org.springframework.web.bind.annotation.RequestParam(required = false, defaultValue = "demo") String tenantId,
-      @org.springframework.web.bind.annotation.RequestParam(required = false, defaultValue = "authorization_code") String grantTypes,
-      @org.springframework.web.bind.annotation.RequestParam(required = false, defaultValue = "openid,profile") String scopes,
-      @org.springframework.web.bind.annotation.RequestParam(required = false, defaultValue = "") String redirectUris,
-      @org.springframework.web.bind.annotation.RequestParam(required = false, defaultValue = "false") boolean requirePkce,
+      @RequestParam String clientId,
+      @RequestParam(required = false, defaultValue = "") String clientSecret,
+      @RequestParam(required = false, defaultValue = "") String clientName,
+      @RequestParam(required = false, defaultValue = "demo") String tenantId,
+      @RequestParam(required = false, defaultValue = "authorization_code") String grantTypes,
+      @RequestParam(required = false, defaultValue = "openid,profile") String scopes,
+      @RequestParam(required = false, defaultValue = "") String redirectUris,
+      @RequestParam(required = false, defaultValue = "false") boolean requirePkce,
       Model model) {
 
     adminClientService.createClient(new AdminClientService.CreateClientCommand(
@@ -63,10 +66,10 @@ public class AdminClientController {
     return "admin/clients/list :: clientTableBody";
   }
 
-  @org.springframework.web.bind.annotation.PostMapping("/{clientId}/delete")
+  @PostMapping("/{clientId}/delete")
   public String deleteClient(
-      @org.springframework.web.bind.annotation.PathVariable String clientId,
-      @org.springframework.web.bind.annotation.RequestParam(required = false, defaultValue = "demo") String tenantId,
+      @PathVariable String clientId,
+      @RequestParam(required = false, defaultValue = "demo") String tenantId,
       Model model) {
 
     adminClientService.deleteClient(clientId, tenantId);

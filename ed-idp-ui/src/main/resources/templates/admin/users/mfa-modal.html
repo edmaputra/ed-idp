@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Main MFA Modal Fragment -->
+<div th:fragment="mfaModal" class="modal-backdrop-custom" onclick="if(event.target === this) document.getElementById('mfa-user-modal').innerHTML = ''">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-custom" style="max-width: 540px;">
+    <div class="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
+      <div class="modal-header px-4 py-3 border-bottom bg-body-tertiary">
+        <div class="d-flex align-items-center gap-2">
+          <div class="p-2 bg-primary-subtle text-primary rounded-3">
+            <i class="bi bi-shield-lock-fill fs-5"></i>
+          </div>
+          <h5 class="modal-title fw-bold mb-0">Multi-Factor Authentication (2FA)</h5>
+        </div>
+        <button type="button" class="btn-close" onclick="document.getElementById('mfa-user-modal').innerHTML = ''" aria-label="Close"></button>
+      </div>
+
+      <div id="mfa-modal-content" class="modal-body p-4">
+        <!-- Target User Banner -->
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+          <div>
+            <div class="text-secondary small fw-medium">Account Identity</div>
+            <div class="fw-bold fs-6">
+              <span th:text="${user.fullName}">John Doe</span>
+              <span class="font-monospace text-secondary small" th:text="'(' + ${user.username} + ')'">(jdoe)</span>
+            </div>
+          </div>
+          <div>
+            <span th:if="${mfaStatus.enabled}" class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 d-inline-flex align-items-center gap-1">
+              <i class="bi bi-shield-check"></i> 2FA Active
+            </span>
+            <span th:unless="${mfaStatus.enabled}" class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-1.5 d-inline-flex align-items-center gap-1">
+              <i class="bi bi-shield-x"></i> 2FA Inactive
+            </span>
+          </div>
+        </div>
+
+        <!-- State: MFA Active -->
+        <div th:if="${mfaStatus.enabled}">
+          <div class="alert alert-success d-flex align-items-start gap-3 rounded-3 mb-4">
+            <i class="bi bi-shield-check fs-4 text-success flex-shrink-0 mt-1"></i>
+            <div>
+              <h6 class="alert-heading fw-bold mb-1">Two-Factor Authentication is currently active</h6>
+              <p class="small mb-0 opacity-90">
+                This identity is secured with RFC 6238 time-based one-time passwords (TOTP). Signing in requires primary credentials plus a 6-digit code from an authenticator app.
+              </p>
+            </div>
+          </div>
+
+          <div class="card border-danger-subtle bg-danger-subtle bg-opacity-10 rounded-3 p-3">
+            <h6 class="fw-bold text-danger d-flex align-items-center gap-2 mb-2">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              Account Recovery &amp; Reset
+            </h6>
+            <p class="small text-secondary mb-3">
+              If the user has lost access to their authenticator device or backup codes, reset their 2FA credentials below. This immediately revokes their registered TOTP secret and backup keys.
+            </p>
+            <form th:attr="hx-post=@{${basePath} + '/users/' + ${user.username} + '/mfa/reset'}"
+                  hx-target="#mfa-modal-content"
+                  hx-swap="innerHTML"
+                  hx-on::after-request="if(event.detail.successful) { showToast('2FA has been reset', 'info'); htmx.ajax('GET', '[[${basePath}]]/users/table', {target: '#users-table', swap: 'outerHTML'}); }">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+              <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3 py-1.5 d-inline-flex align-items-center gap-2"
+                      onclick="return confirm('Are you sure you want to reset 2FA for this user? All registered authenticator credentials and emergency recovery codes will be deleted.')">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                <span>Reset 2FA for this User</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- State: MFA Inactive -->
+        <div th:unless="${mfaStatus.enabled}">
+          <div class="card bg-body-tertiary border-0 rounded-3 p-4 text-center">
+            <div class="mx-auto p-3 bg-secondary-subtle text-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 56px; height: 56px;">
+              <i class="bi bi-shield-slash fs-3"></i>
+            </div>
+            <h6 class="fw-bold mb-1">2FA is Not Configured</h6>
+            <p class="small text-secondary mb-0">
+              Two-factor authentication is not enrolled for account <span class="font-monospace fw-semibold text-body" th:text="${user.username}">user</span>.
+              Users enroll their own devices directly through self-service security settings or when MFA is enforced at login.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer px-4 py-3 bg-body-tertiary border-top d-flex justify-content-end">
+        <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" onclick="document.getElementById('mfa-user-modal').innerHTML = ''">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Fragment: Reset Step (Confirmation) -->
+<div th:fragment="mfaResetStep" class="text-center py-4">
+  <div class="mx-auto p-3 bg-success-subtle text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+    <i class="bi bi-check-circle-fill fs-2"></i>
+  </div>
+  <h5 class="fw-bold mb-2">2FA Reset Successfully</h5>
+  <p class="text-secondary small mb-3">
+    All two-factor authentication credentials, secrets, and emergency backup codes for <span class="font-monospace fw-semibold text-body" th:text="${user.username}">user</span> have been permanently removed.
+  </p>
+  <div class="alert alert-secondary py-2 px-3 small d-inline-block rounded-pill">
+    <i class="bi bi-info-circle me-1"></i> The user may now authenticate without 2FA or re-enroll a new device.
+  </div>
+</div>
+
+</body>
+</html>

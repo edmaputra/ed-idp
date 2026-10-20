@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -34,14 +35,9 @@ public class IamUserDetailsService implements UserDetailsService {
       throw new UsernameNotFoundException("Email must not be empty");
     }
 
-    String userSql = """
-        SELECT u.id, u.email, u.password_hash, u.status, u.is_platform_superadmin
-        FROM iam_user u
-        WHERE LOWER(u.email) = LOWER(?)
-        LIMIT 1
-        """;
+    String trimmed = usernameOrEmail.trim();
 
-    List<UserDetails> results = jdbcTemplate.query(userSql, (rs, rowNum) -> {
+    RowMapper<UserDetails> rowMapper = (rs, rowNum) -> {
       String id = rs.getString("id");
       String email = rs.getString("email");
       String password = rs.getString("password_hash");
@@ -89,7 +85,26 @@ public class IamUserDetailsService implements UserDetailsService {
           .disabled(!enabled)
           .authorities(authorities)
           .build();
-    }, usernameOrEmail);
+    };
+
+    List<UserDetails> results;
+    if (trimmed.contains("@")) {
+      String userSql = """
+          SELECT u.id, u.email, u.password_hash, u.status, u.is_platform_superadmin
+          FROM iam_user u
+          WHERE LOWER(u.email) = LOWER(?)
+          LIMIT 1
+          """;
+      results = jdbcTemplate.query(userSql, rowMapper, trimmed);
+    } else {
+      String userSql = """
+          SELECT u.id, u.email, u.password_hash, u.status, u.is_platform_superadmin
+          FROM iam_user u
+          WHERE LOWER(u.email) = LOWER(?) OR LOWER(u.email) = LOWER(?)
+          LIMIT 1
+          """;
+      results = jdbcTemplate.query(userSql, rowMapper, trimmed, trimmed + "@example.com");
+    }
 
     if (results.isEmpty()) {
       throw new UsernameNotFoundException("User not found with email: " + usernameOrEmail);

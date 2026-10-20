@@ -1,13 +1,13 @@
 package io.github.edmaputra.edidp.tenancy;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.github.edmaputra.edidp.tenancy.TenantContext;
-import io.github.edmaputra.edidp.tenancy.TenantContextFilter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
@@ -116,8 +116,8 @@ class TenantContextFilterTests {
         "X-Tenant-ID",
         "127.0.0.1,::1,0:0:0:0:0:0:0:1");
 
-    AtomicReference<jakarta.servlet.http.HttpServletRequest> capturedRequest = new AtomicReference<>();
-    FilterChain chain = (req, res) -> capturedRequest.set((jakarta.servlet.http.HttpServletRequest) req);
+    AtomicReference<HttpServletRequest> capturedRequest = new AtomicReference<>();
+    FilterChain chain = (req, res) -> capturedRequest.set((HttpServletRequest) req);
 
     // 1. Non-standard port (8080)
     MockHttpServletRequest request1 = new MockHttpServletRequest("POST", "/t/demo/oauth2/introspect");
@@ -187,7 +187,7 @@ class TenantContextFilterTests {
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/t/demo/oauth2/token");
     MockHttpServletResponse response = new MockHttpServletResponse();
 
-    org.assertj.core.api.Assertions.assertThatThrownBy(() -> {
+    assertThatThrownBy(() -> {
       filter.doFilter(request, response, (req, res) -> {
         sneakyThrow(new Exception("Checked failure"));
       });

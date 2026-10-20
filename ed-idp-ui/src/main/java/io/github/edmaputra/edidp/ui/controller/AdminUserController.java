@@ -123,4 +123,27 @@ public class AdminUserController {
     model.addAttribute("users", adminUserService.listUsers());
     return "admin/users/list :: userTableBody";
   }
+
+  @GetMapping("/{username}/mfa")
+  public String userMfaModal(@PathVariable String username, Model model) {
+    var userOpt = adminUserService.getUser(username);
+    if (userOpt.isEmpty()) {
+      return "redirect:" + uiProperties.basePath() + "/users";
+    }
+    model.addAttribute("user", userOpt.get());
+    model.addAttribute("mfaStatus", adminUserService.getMfaStatus(username));
+    return "admin/users/mfa-modal :: mfaModal";
+  }
+
+  @PostMapping("/{username}/mfa/reset")
+  public String userMfaReset(@PathVariable String username, Model model) {
+    var userOpt = adminUserService.getUser(username);
+    if (userOpt.isEmpty()) {
+      return "redirect:" + uiProperties.basePath() + "/users";
+    }
+    adminUserService.resetMfa(username);
+    model.addAttribute("user", userOpt.get());
+    model.addAttribute("mfaStatus", adminUserService.getMfaStatus(username));
+    return "admin/users/mfa-modal :: mfaResetStep";
+  }
 }

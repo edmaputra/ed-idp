@@ -4,17 +4,22 @@ import io.github.edmaputra.edidp.claims.ClaimType;
 import io.github.edmaputra.edidp.claims.UserClaimsService;
 import io.github.edmaputra.edidp.tenancy.TenantContext;
 import io.github.edmaputra.edidp.tenancy.TenantIssuerService;
+import java.security.Principal;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.oidc.endpoint.OidcParameterNames;
+import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
@@ -69,6 +74,11 @@ public class TokensConfig {
       }
 
       if (OidcParameterNames.ID_TOKEN.equals(context.getTokenType().getValue())) {
+        boolean mfaCompleted = hasMfaCompleted(authorization);
+        List<String> amr = mfaCompleted
+            ? new ArrayList<>(List.of("pwd", "mfa", "totp"))
+            : new ArrayList<>(List.of("pwd"));
+        context.getClaims().claim("amr", amr);
         context.getClaims().claims((claims) ->
             claims.putAll(userClaimsService.getClaims(username, ClaimType.ID_TOKEN)));
         return;
@@ -79,6 +89,15 @@ public class TokensConfig {
             claims.putAll(userClaimsService.getClaims(username, ClaimType.ACCESS_TOKEN)));
       }
     };
+  }
+
+  private static boolean hasMfaCompleted(OAuth2Authorization authorization) {
+    Object principalObj = authorization.getAttribute(Principal.class.getName());
+    if (principalObj instanceof Authentication authentication) {
+      return authentication.getAuthorities().stream()
+          .anyMatch(a -> "MFA_VERIFIED".equals(a.getAuthority()));
+    }
+    return false;
   }
 
   private static void validateClientCredentialsScopes(
