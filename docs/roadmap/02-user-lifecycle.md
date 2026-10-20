@@ -10,11 +10,13 @@ Users are currently seeded in code. A complete IdP owns the full user lifecycle 
 - Progressive profiling (collect attributes over time).
 
 ### Profile self-service
-- View/update profile and `UserProfileAttribute`s.
+- View/update profile details (full name, department) and credentials (password change) via UI self-service menu (`/admin/profile`). *(Implemented)*
+- View/update `UserProfileAttribute`s.
 - Manage consents and connected applications.
 - Manage enrolled MFA devices and sessions.
 
-### Credential recovery
+### Credential recovery & maintenance
+- In-session credential maintenance / password change. *(Implemented)*
 - Forgot-password (email/SMS reset link or OTP).
 - Account recovery via backup codes / recovery contact.
 

@@ -29,6 +29,9 @@
     <a th:href="@{${basePath} + '/tenants'}" class="nav-link" th:classappend="${activeMenu == 'tenants'} ? ' active' : ''">
       <span>🏢</span> Tenants
     </a>
+    <a th:href="@{${basePath} + '/profile'}" class="nav-link" th:classappend="${activeMenu == 'profile'} ? ' active' : ''">
+      <span>👤</span> My Profile
+    </a>
   </nav>
   <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 1rem;">
     <form th:action="@{${basePath} + '/logout'}" method="post">
@@ -43,6 +46,9 @@
 <header th:fragment="topbar(pageTitle)" class="topbar">
   <h2 th:text="${pageTitle}" style="font-size: 1.25rem; font-weight: 600;">Page Title</h2>
   <div style="display: flex; align-items: center; gap: 1rem;">
+    <a th:href="@{${basePath} + '/profile'}" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.825rem; text-decoration: none;" title="My Profile &amp; Credentials">
+      <span>👤</span> Profile
+    </a>
     <span class="badge badge-success">Admin Mode</span>
   </div>
 </header>

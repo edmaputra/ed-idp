@@ -159,6 +159,54 @@ curl -s http://localhost:9000/userinfo \
 
 ---
 
+## Step 6: Self-Service Profile & Password Management
+
+Authenticated users can manage their own profile details, dynamic attributes, and password through either the REST API or the Web UI.
+
+### 1. Using the REST API (OAuth 2.1 Resource Server)
+
+Client applications (e.g. `ed-idp-account-portal`) acquire an access token with the required self-service scopes (`profile`, `profile:write`, `password:write`, or `account:manage`):
+
+#### Get Profile
+```bash
+curl -s http://localhost:9000/api/v1/users/me \
+  -H "Authorization: Bearer <access_token>" | jq
+```
+
+#### Update Profile & Custom Attributes
+```bash
+curl -s -X PUT http://localhost:9000/api/v1/users/me \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Bob Senior Engineer",
+    "department": "core-infrastructure",
+    "locale": "en-US",
+    "zoneinfo": "America/New_York",
+    "attributes": {
+      "ui_theme": "light",
+      "cost_center": "CC-ENG-904"
+    }
+  }' | jq
+```
+
+#### Change Password
+```bash
+curl -s -i -X POST http://localhost:9000/api/v1/users/me/password \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "currentPassword": "UserSecret123!",
+    "newPassword": "NewUserSecret456!"
+  }'
+```
+*(Returns `HTTP/1.1 204 No Content` on success).*
+
+### 2. Using the Web UI
+Logged-in users can navigate directly to the **Profile** menu in the sidebar (`/admin/profile`) to inspect their account details, view profile fields, and change their password in-session.
+
+---
+
 ## Reserved Claim Protections
 
 ed-idp prevents custom attributes from overriding core protocol claims. If a rule or attribute specifies any of the following keys, it is safely ignored:

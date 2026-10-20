@@ -57,7 +57,16 @@
 - **Demo User & Profile Seeding**: Built-in seeding for development testing (`demo-user` with BCrypt password hashing, standard profile metadata, and attribute claim routing).
 - **Client Scope Validation Service (`ClientScopeService`)**: Encapsulated service querying client registrations and verifying assigned scopes.
 
-### 1.7 Architectural Foundation & Persistence
+### 1.7 User Profile & Credential Self-Service (OAuth 2.1 Resource Server)
+> Detailed specification: [features/13-user-self-service-resource-server.md](features/13-user-self-service-resource-server.md)
+
+- **Decoupled Resource Server API**: Fully segregated REST API (`/api/v1/users/me` and `/t/{tenant}/api/v1/users/me`) operating as an OAuth 2.1 Resource Server guarding self-service operations via signed JWT Bearer tokens.
+- **Tenant Isolation Enforcement**: `TenantClaimJwtValidator` validates that token `tenant_id` claims match the contextual request tenant, strictly blocking cross-tenant token replay attacks.
+- **Scope-Protected Profile & Credential Maintenance**: Fine-grained scope protection enforcing `profile` (read), `profile:write` / `account:manage` (update profile & custom attributes), and `password:write` / `account:manage` (in-session password changes).
+- **Web UI Profile Management**: Built-in `/admin/profile` menu in `ed-idp-ui` providing interactive self-service credential and profile management.
+- **Client & Scope Provisioning**: Default PKCE portal client (`ed-idp-account-portal`) seeded on startup with self-service scopes.
+
+### 1.8 Architectural Foundation & Persistence
 > Detailed specifications: [architecture/00-architecture.md](architecture/00-architecture.md) · [features/11-persistence-schema.md](features/11-persistence-schema.md) · [features/12-configuration.md](features/12-configuration.md)
 
 - **Vertical-Slice Modular Monolith**: Codebase structured into clean feature modules (`authorization`, `claims`, `clients`, `consent`, `tenancy`, `tokens`, `users`, `oauth`, `shared`) with dependency rules verified by **Spring Modulith**.
@@ -67,22 +76,23 @@
 ```mermaid
 flowchart TD
     subgraph Ingress["Request Ingress"]
-        Req["HTTP Request\n(/oauth2/*, /t/{tenant}/*)"] --> TCF["TenantContextFilter\n(Resolve tenant -> TenantContext)"]
+        Req["HTTP Request\n(/oauth2/*, /t/{tenant}/*, /api/v1/users/me/**)"] --> TCF["TenantContextFilter\n(Resolve tenant -> TenantContext)"]
     end
 
     subgraph Security["Ordered Security Filter Chains"]
         TCF --> C1["Order 1: Tenant Machine Endpoints\n(/t/{tenant}/oauth2/introspect, revoke)"]
         TCF --> C2["Order 2: Auth Server Core\n(/oauth2/authorize, /oauth2/token, consent)"]
-        TCF --> C3["Order 3: Base Machine Endpoints\n(/oauth2/introspect, revoke)"]
-        TCF --> C4["Order 4: Default Chain\n(Form login, /userinfo, /logged-out)"]
+        TCF --> C3["Order 3: User Resource Server\n(/api/v1/users/me/**, /t/{tenant}/api/v1/users/me/**)"]
+        TCF --> C4["Order 4: Base Machine Endpoints\n(/oauth2/introspect, revoke)"]
+        TCF --> C5["Order 5: Default Chain\n(Form login, /userinfo, /admin/**, /logged-out)"]
     end
 
     subgraph Modules["Feature Slices (Spring Modulith)"]
-        C1 & C3 --> ModTokens["tokens (introspection & revocation)"]
+        C1 & C4 --> ModTokens["tokens (introspection & revocation)"]
         C2 --> ModAuthz["authorization & consent"]
         C2 --> ModClaims["claims (dynamic claim assembly)"]
-        C4 --> ModUsers["users (profiles & attributes)"]
-        C1 & C2 & C3 --> ModClients["clients (store & scopes)"]
+        C3 & C5 --> ModUsers["users (profiles, self-service & attributes)"]
+        C1 & C2 & C4 --> ModClients["clients (store & scopes)"]
     end
 
     subgraph Persistence["Persistence Layer"]

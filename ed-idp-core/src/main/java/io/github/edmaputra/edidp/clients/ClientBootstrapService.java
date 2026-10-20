@@ -34,6 +34,12 @@ public class ClientBootstrapService {
   private static final String PKCE_PUBLIC_CLIENT_POST_LOGOUT_REDIRECT_URI =
       "http://127.0.0.1:9000/logged-out";
 
+  private static final String ACCOUNT_PORTAL_CLIENT_ID = "ed-idp-account-portal";
+  private static final String ACCOUNT_PORTAL_REDIRECT_URI =
+      "http://127.0.0.1:9000/login/oauth2/code/ed-idp-account-portal";
+  private static final String ACCOUNT_PORTAL_POST_LOGOUT_REDIRECT_URI =
+      "http://127.0.0.1:9000/logged-out";
+
   private final RegisteredClientRepository registeredClientRepository;
   private final PasswordEncoder passwordEncoder;
   private final TokenSettings tokenSettings;
@@ -41,6 +47,7 @@ public class ClientBootstrapService {
   public void ensureDefaultClients() {
     ensureDemoClient();
     ensurePkcePublicClient();
+    ensureAccountPortalClient();
   }
 
   private void ensureDemoClient() {
@@ -57,6 +64,14 @@ public class ClientBootstrapService {
     }
 
     registeredClientRepository.save(createPkcePublicClient());
+  }
+
+  private void ensureAccountPortalClient() {
+    if (registeredClientRepository.findByClientId(ACCOUNT_PORTAL_CLIENT_ID) != null) {
+      return;
+    }
+
+    registeredClientRepository.save(createAccountPortalClient());
   }
 
   private RegisteredClient createDemoClient() {
@@ -77,6 +92,9 @@ public class ClientBootstrapService {
         .scope("write")
         .scope("introspection")
         .scope("revocation")
+        .scope("profile:write")
+        .scope("password:write")
+        .scope("account:manage")
         .clientSettings(ClientSettings.builder().requireProofKey(false).build())
         .tokenSettings(tokenSettings)
         .build();
@@ -93,6 +111,28 @@ public class ClientBootstrapService {
         .scope("profile")
         .scope("email")
         .scope("read")
+        .scope("profile:write")
+        .scope("password:write")
+        .scope("account:manage")
+        .clientSettings(ClientSettings.builder().requireProofKey(true).build())
+        .tokenSettings(tokenSettings)
+        .build();
+  }
+
+  private RegisteredClient createAccountPortalClient() {
+    return RegisteredClient.withId(UUID.randomUUID().toString())
+        .clientId(ACCOUNT_PORTAL_CLIENT_ID)
+        .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+        .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+        .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+        .redirectUri(ACCOUNT_PORTAL_REDIRECT_URI)
+        .postLogoutRedirectUri(ACCOUNT_PORTAL_POST_LOGOUT_REDIRECT_URI)
+        .scope("openid")
+        .scope("profile")
+        .scope("email")
+        .scope("profile:write")
+        .scope("password:write")
+        .scope("account:manage")
         .clientSettings(ClientSettings.builder().requireProofKey(true).build())
         .tokenSettings(tokenSettings)
         .build();

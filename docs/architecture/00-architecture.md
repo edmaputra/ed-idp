@@ -64,7 +64,7 @@ flowchart TD
 | Module Package | Responsibilities | Allowed Dependencies | Key Classes |
 |---|---|---|---|
 | [`tenancy/`](../../src/main/java/io/github/edmaputra/edidp/tenancy) | Request tenant resolution, thread-local context management, per-tenant dynamic issuer URLs. | *None* (Foundation) | `TenantContextFilter`, `ResolveTenantService`, `TenantContext`, `TenantIssuerService` |
-| [`users/`](../../src/main/java/io/github/edmaputra/edidp/users) | User profile entities, custom dynamic attributes, persistence repositories. | *None* (Foundation) | `UserProfile`, `UserProfileAttribute`, `UserProfileRepository`, `UserProfileAttributeRepository` |
+| [`users/`](../../src/main/java/io/github/edmaputra/edidp/users) | User profile entities, custom dynamic attributes, persistence repositories, and self-service REST APIs. | `tenancy` | `UserProfile`, `UserProfileAttribute`, `UserSelfService`, `UserSelfServiceRestController` |
 | [`shared/`](../../src/main/java/io/github/edmaputra/edidp/shared) | Cross-cutting endpoints and shared web resources. | *None* (Foundation) | `LoggedOutController` |
 | [`oauth/`](../../src/main/java/io/github/edmaputra/edidp/oauth) | Security filter chains, OIDC metadata/JWKS endpoints, tenant-aware JDBC repository adapters. | `tenancy`, `shared` | `SecurityConfig`, `TenantOidcMetadataController`, `TenantJwksController`, `TenantAware*` repositories |
 | [`clients/`](../../src/main/java/io/github/edmaputra/edidp/clients) | Client registration bootstrap, client credential authentication, scope verification. | `tenancy`, `oauth` | `ClientBootstrapService`, `ClientAuthenticationService`, `ClientScopeService` |
@@ -77,11 +77,11 @@ flowchart TD
 
 ## 3. Multi-Tier Security Filter Chain Architecture
 
-Spring Security is configured with **four ordered filter chains** plus a pre-security servlet filter registered at highest precedence. This separation prevents browser login redirects on machine-to-machine APIs while ensuring interactive authorization flows remain strictly protected.
+Spring Security is configured with **five ordered filter chains** plus a pre-security servlet filter registered at highest precedence. This separation prevents browser login redirects on machine-to-machine APIs while ensuring interactive authorization flows remain strictly protected.
 
 ```mermaid
 flowchart TD
-    Req["Incoming HTTP Request"] --> TCF["TenantContextFilter\n(Order: HIGHEST_PRECEDENCE)\n• Resolves Tenant (path / header)\n• Populates TenantContext\n• Rewrites machine URL if tenant-prefixed"]
+    Req["Incoming HTTP Request"] --> TCF["TenantContextFilter\n(Order: HIGHEST_PRECEDENCE)\n• Resolves Tenant (path / header)\n• Populates TenantContext\n• Rewrites machine / self-service URL if tenant-prefixed"]
 
     TCF --> Router{"Security Filter Chain Matcher"}
 
@@ -89,16 +89,18 @@ flowchart TD
 
     Router -- "Matches SAS endpoints\nor /oauth2/authorize-consent" --> Chain2["@Order(2): Auth Server Core\n• OAuth 2.1 & OIDC endpoints\n• LoginUrlAuthenticationEntryPoint (/login)\n• Token customizer & UserInfo mapper attached"]
 
-    Router -- "Matches /oauth2/introspect\nor /oauth2/revoke" --> Chain3["@Order(3): Base Machine Endpoints\n• permitAll()\n• Basic Auth validated inside controller\n• Always returns JSON errors (RFC 7662/7009)"]
+    Router -- "Matches /api/v1/users/me/**" --> Chain3["@Order(3): User Resource Server\n• OAuth 2.1 Resource Server (JWT Bearer)\n• TenantClaimJwtValidator enforces tenant isolation\n• Scopes: profile, profile:write, password:write, account:manage"]
 
-    Router -- "All other requests" --> Chain4["@Order(4): Default Security Chain\n• Form login enabled (/login)\n• permitAll on /logged-out, metadata & JWKS\n• All other routes require authenticated session"]
+    Router -- "Matches /oauth2/introspect\nor /oauth2/revoke" --> Chain4["@Order(4): Base Machine Endpoints\n• permitAll()\n• Basic Auth validated inside controller\n• Always returns JSON errors (RFC 7662/7009)"]
+
+    Router -- "All other requests" --> Chain5["@Order(5): Default Security Chain\n• Form login enabled (/login)\n• permitAll on /logged-out, metadata & JWKS\n• All other routes require authenticated session"]
 ```
 
 ### Chain Details
 
 1. **`TenantContextFilter` (`FilterRegistrationBean`, `HIGHEST_PRECEDENCE`)**:
    - Inspects the URI path (`/t/{tenant}/...`) and incoming HTTP headers (`X-Tenant-ID`).
-   - If tenant is present on a machine path (e.g. `/t/demo/oauth2/introspect`), it rewrites the request URI internally to the canonical path (`/oauth2/introspect`) while keeping `TenantContext` populated.
+   - If tenant is present on a machine or self-service path (e.g. `/t/demo/oauth2/introspect` or `/t/demo/api/v1/users/me`), it rewrites the request URI internally to the canonical path while keeping `TenantContext` populated.
    - Binds the resolved tenant to the current thread via `TenantContext.setCurrentTenant(...)` and reliably clears it in a `finally` block.
 2. **`@Order(1)` — `tenantMachineEndpointsFilterChain`**:
    - Matches: `/t/{tenant}/oauth2/introspect` and `/t/{tenant}/oauth2/revoke`.
@@ -107,10 +109,14 @@ flowchart TD
    - Matches: Standard Spring Authorization Server endpoints (`/oauth2/authorize`, `/oauth2/token`, `/oauth2/jwks`) and custom consent (`/oauth2/authorize-consent`).
    - Hooks: Attaches `userInfoMapper` (UserInfo claims) and `jwtTokenCustomizer` (dynamic claims and M2M scope enforcement).
    - Exception Handling: Sets `LoginUrlAuthenticationEntryPoint("/login")` for HTML requests.
-4. **`@Order(3)` — `introspectionFilterChain`**:
+4. **`@Order(3)` — `userResourceServerSecurityFilterChain`**:
+   - Matches: User self-service REST API (`/api/v1/users/me/**`).
+   - Security: Configured as an OAuth 2.1 Resource Server decoding JWT Bearer tokens signed by `ed-idp`. Uses `TenantClaimJwtValidator` to enforce that the token's `tenant_id` claim matches the request's `TenantContext`.
+   - Authorization: Enforces `SCOPE_profile` (GET), `SCOPE_profile:write` or `SCOPE_account:manage` (PUT), and `SCOPE_password:write` or `SCOPE_account:manage` (POST).
+5. **`@Order(4)` — `introspectionFilterChain`**:
    - Matches: Canonical non-tenant paths `/oauth2/introspect` and `/oauth2/revoke`.
    - Security: `permitAll()` allowing custom M2M controller authentication.
-5. **`@Order(4)` — `defaultSecurityFilterChain`**:
+6. **`@Order(5)` — `defaultSecurityFilterChain`**:
    - Matches: All remaining application endpoints.
    - Security: Form login with default Spring Security login page. Public access permitted for `/logged-out`, tenant discovery (`/t/*/.well-known/openid-configuration`), and tenant JWKS (`/t/*/oauth2/jwks`).
 

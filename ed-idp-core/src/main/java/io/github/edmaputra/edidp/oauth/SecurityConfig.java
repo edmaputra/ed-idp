@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.config.Customizer;
@@ -32,7 +33,13 @@ import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
@@ -114,6 +121,23 @@ public class SecurityConfig {
 
   @Bean
   @Order(3)
+  SecurityFilterChain userResourceServerSecurityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder) throws Exception {
+    http
+        .securityMatcher(PathPatternRequestMatcher.withDefaults().matcher("/api/v1/users/me/**"))
+        .csrf(AbstractHttpConfigurer::disable)
+        .authorizeHttpRequests(authorize -> authorize
+            .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAuthority("SCOPE_profile")
+            .requestMatchers(HttpMethod.PUT, "/api/v1/users/me").hasAnyAuthority("SCOPE_profile:write", "SCOPE_account:manage")
+            .requestMatchers(HttpMethod.POST, "/api/v1/users/me/password").hasAnyAuthority("SCOPE_password:write", "SCOPE_account:manage")
+            .anyRequest().authenticated()
+        )
+        .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder)));
+
+    return http.build();
+  }
+
+  @Bean
+  @Order(4)
   SecurityFilterChain introspectionFilterChain(HttpSecurity http) throws Exception {
     http
       .securityMatcher(
@@ -128,7 +152,7 @@ public class SecurityConfig {
   }
 
   @Bean
-  @Order(4)
+  @Order(5)
   SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
     http
         .authorizeHttpRequests((authorize) -> authorize
@@ -184,6 +208,15 @@ public class SecurityConfig {
     RSAKey rsaKey = generateRsaKey();
     JWKSet jwkSet = new JWKSet(rsaKey);
     return new ImmutableJWKSet<>(jwkSet);
+  }
+
+  @Bean
+  JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwkSource) {
+    NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withJwkSource(jwkSource).build();
+    OAuth2TokenValidator<Jwt> defaultValidator = JwtValidators.createDefault();
+    OAuth2TokenValidator<Jwt> tenantValidator = new TenantClaimJwtValidator();
+    jwtDecoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(defaultValidator, tenantValidator));
+    return jwtDecoder;
   }
 
   @Bean

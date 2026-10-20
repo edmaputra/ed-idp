@@ -41,18 +41,20 @@ class ClientBootstrapServiceTests {
   void ensureDefaultClientsSeedsBothClientsWhenTheyDoNotExist() {
     when(registeredClientRepository.findByClientId("demo-client")).thenReturn(null);
     when(registeredClientRepository.findByClientId("pkce-public-client")).thenReturn(null);
+    when(registeredClientRepository.findByClientId("ed-idp-account-portal")).thenReturn(null);
     when(passwordEncoder.encode("demo-secret")).thenReturn("encoded-demo-secret");
 
     useCase.ensureDefaultClients();
 
     ArgumentCaptor<RegisteredClient> captor = ArgumentCaptor.forClass(RegisteredClient.class);
-    verify(registeredClientRepository, times(2)).save(captor.capture());
+    verify(registeredClientRepository, times(3)).save(captor.capture());
 
     List<RegisteredClient> savedClients = captor.getAllValues();
-    assertThat(savedClients).hasSize(2);
+    assertThat(savedClients).hasSize(3);
     assertThat(savedClients.get(0).getClientId()).isEqualTo("demo-client");
     assertThat(savedClients.get(0).getClientSecret()).isEqualTo("encoded-demo-secret");
     assertThat(savedClients.get(1).getClientId()).isEqualTo("pkce-public-client");
+    assertThat(savedClients.get(2).getClientId()).isEqualTo("ed-idp-account-portal");
   }
 
   @Test
@@ -65,11 +67,13 @@ class ClientBootstrapServiceTests {
 
     when(registeredClientRepository.findByClientId("demo-client")).thenReturn(existingClient);
     when(registeredClientRepository.findByClientId("pkce-public-client")).thenReturn(existingClient);
+    when(registeredClientRepository.findByClientId("ed-idp-account-portal")).thenReturn(existingClient);
 
     useCase.ensureDefaultClients();
 
     verifyNoInteractions(passwordEncoder);
     verify(registeredClientRepository).findByClientId("demo-client");
     verify(registeredClientRepository).findByClientId("pkce-public-client");
+    verify(registeredClientRepository).findByClientId("ed-idp-account-portal");
   }
 }
