@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -36,7 +37,7 @@ public class IamUserDetailsService implements UserDetailsService {
 
     String trimmed = usernameOrEmail.trim();
 
-    org.springframework.jdbc.core.RowMapper<UserDetails> rowMapper = (rs, rowNum) -> {
+    RowMapper<UserDetails> rowMapper = (rs, rowNum) -> {
       String id = rs.getString("id");
       String email = rs.getString("email");
       String password = rs.getString("password_hash");

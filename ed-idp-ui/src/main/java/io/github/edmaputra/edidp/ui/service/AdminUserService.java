@@ -1,6 +1,8 @@
 package io.github.edmaputra.edidp.ui.service;
 
+import io.github.edmaputra.iam.application.model.MfaStatusResponse;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Service defining IAM administrative operations for users and profiles.
@@ -21,6 +23,7 @@ public interface AdminUserService {
    * @param roles assigned authorities or roles
    * @param groups assigned user groups
    * @param department assigned department
+   * @param mfaEnabled whether multi-factor authentication is active
    */
   record AdminUserSummary(
       String username,
@@ -30,7 +33,8 @@ public interface AdminUserService {
       String email,
       List<String> roles,
       List<String> groups,
-      String department
+      String department,
+      boolean mfaEnabled
   ) {
     public AdminUserSummary {
       if (username == null || username.isBlank()) {
@@ -57,8 +61,20 @@ public interface AdminUserService {
         String fullName,
         String email,
         List<String> roles,
+        List<String> groups,
         String department) {
-      this(username, enabled, tenantId, fullName, email, roles, List.of(), department);
+      this(username, enabled, tenantId, fullName, email, roles, groups, department, false);
+    }
+
+    public AdminUserSummary(
+        String username,
+        boolean enabled,
+        String tenantId,
+        String fullName,
+        String email,
+        List<String> roles,
+        String department) {
+      this(username, enabled, tenantId, fullName, email, roles, List.of(), department, false);
     }
   }
 
@@ -158,7 +174,7 @@ public interface AdminUserService {
    * @param username target username
    * @return optional user summary
    */
-  java.util.Optional<AdminUserSummary> getUser(String username);
+  Optional<AdminUserSummary> getUser(String username);
 
   /**
    * Counts total registered users.
@@ -188,4 +204,19 @@ public interface AdminUserService {
    * @param enabled new enabled state
    */
   void setUserEnabled(String username, boolean enabled);
+
+  /**
+   * Retrieves MFA status for a user.
+   *
+   * @param username target username
+   * @return MFA status response
+   */
+  MfaStatusResponse getMfaStatus(String username);
+
+  /**
+   * Resets MFA for a user, revoking all registered authenticator credentials and recovery codes.
+   *
+   * @param username target username
+   */
+  void resetMfa(String username);
 }

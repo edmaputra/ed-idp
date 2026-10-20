@@ -1,16 +1,13 @@
 package io.github.edmaputra.edidp.tokens.introspection;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import io.github.edmaputra.edidp.authorization.AuthorizationPolicyService;
 import io.github.edmaputra.edidp.authorization.AuthorizationPolicyResult;
+import io.github.edmaputra.edidp.authorization.AuthorizationPolicyService;
 import io.github.edmaputra.edidp.clients.ClientAuthenticationResult;
 import io.github.edmaputra.edidp.clients.ClientAuthenticationService;
-import io.github.edmaputra.edidp.tokens.introspection.IntrospectTokenCommand;
-import io.github.edmaputra.edidp.tokens.introspection.IntrospectTokenResult;
-import io.github.edmaputra.edidp.tokens.introspection.IntrospectTokenService;
-import io.github.edmaputra.edidp.tokens.introspection.TokenIntrospectionValidator;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +64,7 @@ class IntrospectTokenServiceTests {
             "demo-client",
             "registered-demo-client",
             Set.of("read")));
-    when(authorizationPolicyUseCase.validateScope(org.mockito.ArgumentMatchers.any()))
+    when(authorizationPolicyUseCase.validateScope(any()))
         .thenReturn(AuthorizationPolicyResult.missingScope("introspection"));
 
     IntrospectTokenResult result = useCase.introspect(new IntrospectTokenCommand("token-value", "Basic abc"));
@@ -84,7 +81,7 @@ class IntrospectTokenServiceTests {
             "demo-client",
             "registered-demo-client",
             Set.of("introspection", "read")));
-    when(authorizationPolicyUseCase.validateScope(org.mockito.ArgumentMatchers.any()))
+    when(authorizationPolicyUseCase.validateScope(any()))
         .thenReturn(AuthorizationPolicyResult.success());
     when(tokenIntrospectionValidator.introspect("token-value")).thenReturn(payload);
 

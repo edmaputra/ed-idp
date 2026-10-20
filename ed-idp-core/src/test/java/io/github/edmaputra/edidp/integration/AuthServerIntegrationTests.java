@@ -7,6 +7,7 @@ import tools.jackson.databind.JsonNode;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -92,9 +93,9 @@ public abstract class AuthServerIntegrationTests {
 
     for (String pair : query.split("&")) {
       String[] split = pair.split("=", 2);
-      String currentKey = java.net.URLDecoder.decode(split[0], StandardCharsets.UTF_8);
+      String currentKey = URLDecoder.decode(split[0], StandardCharsets.UTF_8);
       String currentValue = split.length > 1
-          ? java.net.URLDecoder.decode(split[1], StandardCharsets.UTF_8)
+          ? URLDecoder.decode(split[1], StandardCharsets.UTF_8)
           : "";
       if (key.equals(currentKey)) {
         return currentValue;

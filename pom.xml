@@ -36,7 +36,7 @@
 	<properties>
 		<java.version>25</java.version>
 		<spring-modulith.version>2.1.0</spring-modulith.version>
-		<ed-iam.version>0.10.0</ed-iam.version>
+		<ed-iam.version>0.13.0</ed-iam.version>
 		<jacoco.version>0.8.15</jacoco.version>
 	</properties>
 
@@ -50,6 +50,11 @@
 			<dependency>
 				<groupId>io.github.edmaputra</groupId>
 				<artifactId>ed-iam-core</artifactId>
+				<version>${ed-iam.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.github.edmaputra</groupId>
+				<artifactId>ed-iam-auth</artifactId>
 				<version>${ed-iam.version}</version>
 			</dependency>
 			<dependency>
