@@ -95,5 +95,6 @@ jobs:
           path: |
             **/target/surefire-reports/**
             **/target/failsafe-reports/**
+            **/target/reports/**
             **/target/selenide-reports/**
           if-no-files-found: ignore

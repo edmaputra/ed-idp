@@ -154,8 +154,23 @@ class AdminConsoleLoginE2EIT extends BaseE2ETest {
 
 ---
 
-## 5. Failure Artifacts & Diagnostics
+## 5. Test Reports & Diagnostics
 
+### 5.1 Interactive HTML Test Report
+During `./mvnw clean verify`, the `maven-surefire-report-plugin` automatically generates a comprehensive HTML test report summarizing all test results, success rates, and elapsed execution times:
+
+```
+ed-idp-e2e/target/reports/failsafe.html
+```
+
+To generate or view the HTML report on demand without re-running tests:
+```bash
+./mvnw surefire-report:failsafe-report-only -pl ed-idp-e2e
+open ed-idp-e2e/target/reports/failsafe.html   # On macOS
+# xdg-open ed-idp-e2e/target/reports/failsafe.html # On Linux
+```
+
+### 5.2 Failure Screenshots & DOM Snapshots
 When an assertion or action fails, Selenide automatically captures diagnostics into `ed-idp-e2e/target/selenide-reports/`:
 
 ```

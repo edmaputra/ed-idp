@@ -397,8 +397,13 @@ Duration format accepts Spring Boot duration styles like `90s`, `5m`, `7d`.
 - **OAuth 2.1 PKCE Flow (`OAuth2PkceAuthorizationFlowE2EIT`)**: Headless browser PKCE code grant and token exchange.
 - **Interactive Consent Flow (`OAuthConsentFlowE2EIT`)**: Scope toggling, approval token issuance, and denial handling.
 
-### Failure Diagnostics
-If an E2E test fails, Selenide automatically captures full-page screenshots and HTML DOM snapshots into:
-- Screenshots & HTML source: `ed-idp-e2e/target/selenide-reports/`
+### Test Reports & Failure Diagnostics
+- **HTML Test Execution Report**: `ed-idp-e2e/target/reports/failsafe.html` (viewable in any web browser).
+- **Screenshots & HTML DOM Source (on failure)**: `ed-idp-e2e/target/selenide-reports/`
+
+Generate HTML report on-demand:
+```bash
+./mvnw surefire-report:failsafe-report-only -pl ed-idp-e2e
+```
 
 For complete architectural details and Page Object patterns, see [How-To: End-to-End Browser Automation Testing](docs/how-to/07-end-to-end-testing.md).

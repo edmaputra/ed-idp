@@ -48,6 +48,7 @@ Dependencies flow strictly along declared `@ApplicationModule(allowedDependencie
 - **Run Full Verification (Unit + E2E Browser)**: `./mvnw clean verify`
 - **Run E2E Browser Tests Only**: `./mvnw verify -pl ed-idp-e2e`
 - **Run Single E2E Test**: `./mvnw test -pl ed-idp-e2e -Dtest=ClassName -Dsurefire.failIfNoSpecifiedTests=false`
+- **View E2E HTML Test Report**: Open `ed-idp-e2e/target/reports/failsafe.html`
 - **Inspect Failure Screenshots & Reports**: Look in `ed-idp-e2e/target/selenide-reports/`
 - **Generate Coverage Summary**: `python3 .github/scripts/generate-jacoco-summary.py --output target/coverage-summary.md`
 - **Run Application**: `./mvnw spring-boot:run` (default port: `9000`)
