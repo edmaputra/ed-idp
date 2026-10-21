@@ -66,7 +66,15 @@
 - **Web UI Profile Management**: Built-in `/admin/profile` menu in `ed-idp-ui` providing interactive self-service credential and profile management.
 - **Client & Scope Provisioning**: Default PKCE portal client (`ed-idp-account-portal`) seeded on startup with self-service scopes.
 
-### 1.8 Architectural Foundation & Persistence
+### 1.8 Standalone User Account Portal Module (`ed-idp-account-portal`)
+> Detailed specification: [features/14-account-portal-client.md](features/14-account-portal-client.md)
+
+- **Standalone OAuth 2.1 & OIDC Client**: An independent client application (`ed-idp-account-portal`, default port `9001`) operating with **zero direct database access**.
+- **Bearer Token REST Consumption**: Consumes `ed-idp-core`'s `/api/v1/users/me/**` Resource Server REST APIs via Spring `RestClient` using scoped Bearer tokens obtained through PKCE authorization code flow.
+- **Clean Separation of Concerns**: Strict role demarcation between regular end-users managing personal profiles on port `9001` and platform administrators operating the admin console on port `9000`.
+- **Modern User Experience**: Full-featured user portal styled with Bootstrap 5.3 supporting profile updates, password maintenance, assigned roles and groups review, and theme switching.
+
+### 1.9 Architectural Foundation & Persistence
 > Detailed specifications: [architecture/00-architecture.md](architecture/00-architecture.md) · [features/11-persistence-schema.md](features/11-persistence-schema.md) · [features/12-configuration.md](features/12-configuration.md)
 
 - **Vertical-Slice Modular Monolith**: Codebase structured into clean feature modules (`authorization`, `claims`, `clients`, `consent`, `tenancy`, `tokens`, `users`, `oauth`, `shared`) with dependency rules verified by **Spring Modulith**.
