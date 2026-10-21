@@ -46,6 +46,9 @@ jobs:
       - name: Make Maven Wrapper executable
         run: chmod +x mvnw
 
+      - name: Install Playwright Browsers
+        run: ./mvnw exec:java -pl ed-idp-e2e -Dexec.classpathScope=test -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install --with-deps chromium"
+
       - name: Build and verify with Maven
         run: ./mvnw clean verify -B
 
@@ -95,4 +98,7 @@ jobs:
           path: |
             **/target/surefire-reports/**
             **/target/failsafe-reports/**
+            **/target/playwright-screenshots/**
+            **/target/playwright-traces/**
+            **/target/playwright-videos/**
           if-no-files-found: ignore

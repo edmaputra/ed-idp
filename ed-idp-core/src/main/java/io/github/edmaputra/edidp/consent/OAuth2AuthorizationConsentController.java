@@ -123,7 +123,7 @@ public class OAuth2AuthorizationConsentController {
       if (state != null && !state.isBlank()) {
         denyBuilder.queryParam("state", state);
       }
-      return "redirect:" + denyBuilder.build().toUriString();
+      return "redirect:" + denyBuilder.encode().build().toUriString();
     }
 
     String principalName = authentication.getName();
@@ -152,7 +152,7 @@ public class OAuth2AuthorizationConsentController {
       if (state != null && !state.isBlank()) {
         denyBuilder.queryParam("state", state);
       }
-      return "redirect:" + denyBuilder.build().toUriString();
+      return "redirect:" + denyBuilder.encode().build().toUriString();
     }
 
     CheckConsentCommand command = new CheckConsentCommand(principalName, registeredClientId, approvedSet);

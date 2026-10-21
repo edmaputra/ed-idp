@@ -11,6 +11,7 @@
 - [Custom Claims and Profile Rules](#custom-claims-and-profile-rules)
 - [Security and Persistence](#security-and-persistence)
 - [Error Patterns](#error-patterns)
+- [Testing & Automation](#testing--automation)
 - [How-To (Operational Runbooks)](docs/how-to/README.md)
 
 ## Overview
@@ -370,3 +371,41 @@ Duration format accepts Spring Boot duration styles like `90s`, `5m`, `7d`.
 
 `unsupported_grant_type`
 - Requested grant type is not enabled for the client.
+
+## Testing & Automation
+
+`ed-idp` features a multi-tiered testing suite isolating fast unit tests from browser-driven end-to-end (E2E) automation:
+
+```bash
+# 1. Run unit & slice tests across all modules (fast, no browser started)
+./mvnw test
+
+# 2. Run full build with unit tests + Playwright E2E browser tests
+./mvnw clean verify
+
+# 3. Run E2E browser automation tests only
+./mvnw verify -pl ed-idp-e2e
+
+# 4. Run a single E2E test suite
+./mvnw test -pl ed-idp-e2e -Dtest=AdminConsoleLoginE2EIT -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+### E2E Test Suites
+- **Admin Console Login (`AdminConsoleLoginE2EIT`)**: UI login, error toasts, and admin session logout.
+- **Client Management (`AdminClientsE2EIT`)**: Dynamic HTMX client registration and dialog-confirmed deletion.
+- **User Management (`AdminUsersE2EIT`)**: HTMX user provisioning and subsequent login verification.
+- **OAuth 2.1 PKCE Flow (`OAuth2PkceAuthorizationFlowE2EIT`)**: Headless browser PKCE code grant and token exchange.
+- **Interactive Consent Flow (`OAuthConsentFlowE2EIT`)**: Scope toggling, approval token issuance, and denial handling.
+
+### Playwright Failure Diagnostics
+If an E2E test fails, trace archives, viewport screenshots, and video recordings are automatically generated into `ed-idp-e2e/target/`:
+- Screenshots: `ed-idp-e2e/target/playwright-screenshots/*.png`
+- Traces: `ed-idp-e2e/target/playwright-traces/*.zip`
+- Videos: `ed-idp-e2e/target/playwright-videos/*.webm`
+
+Inspect traces frame-by-frame with Playwright's Trace Viewer:
+```bash
+npx playwright show-trace ed-idp-e2e/target/playwright-traces/<TestClass>_<testMethod>.zip
+```
+
+For complete architectural details and Page Object patterns, see [How-To: End-to-End Browser Automation Testing](docs/how-to/07-end-to-end-testing.md).
