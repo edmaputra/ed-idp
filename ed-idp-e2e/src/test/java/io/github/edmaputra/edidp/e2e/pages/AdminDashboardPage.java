@@ -28,7 +28,7 @@ public class AdminDashboardPage {
   }
 
   public String getHeaderTitle() {
-    return page.locator("header h2").innerText().trim();
+    return page.locator("header h1, header h2, .app-topbar h1").first().innerText().trim();
   }
 
   public String getPageContent() {

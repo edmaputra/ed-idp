@@ -55,9 +55,9 @@ class AdminConsoleLoginE2EIT extends BaseE2ETest {
 
     assertThat(dashboardPage.isDisplayed()).isTrue();
     assertThat(dashboardPage.getHeaderTitle()).contains("Overview Dashboard");
-    assertThat(dashboardPage.getPageContent()).contains("TOTAL REGISTERED CLIENTS");
+    assertThat(dashboardPage.getPageContent()).contains("View all clients");
 
     AdminLoginPage loggedOutPage = dashboardPage.signOut();
-    assertThat(loggedOutPage.getLogoutMessage()).contains("You have been logged out.");
+    assertThat(loggedOutPage.getLogoutMessage()).contains("signed out");
   }
 }

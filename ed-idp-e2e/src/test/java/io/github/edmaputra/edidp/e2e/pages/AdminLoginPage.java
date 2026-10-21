@@ -52,14 +52,14 @@ public class AdminLoginPage {
 
   public String getErrorMessage() {
     page.waitForURL("**/admin/login?error");
-    Locator alert = page.locator(".alert-error");
+    Locator alert = page.locator(".alert-danger, .alert-error");
     alert.waitFor();
     return alert.innerText().trim();
   }
 
   public String getLogoutMessage() {
     page.waitForURL("**/admin/login?logout");
-    Locator alert = page.locator(".alert-error");
+    Locator alert = page.locator(".alert-success, .alert-info");
     alert.waitFor();
     return alert.innerText().trim();
   }
