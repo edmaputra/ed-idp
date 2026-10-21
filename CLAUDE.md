@@ -9,8 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./mvnw spring-boot:run        # Run (port 9000)
 ./mvnw test                   # Run unit & slice tests (fast, no browser)
 ./mvnw -Dtest=ClassName test  # Run single unit test class
-./mvnw clean verify           # Full build + unit tests + Playwright E2E tests
-./mvnw verify -pl ed-idp-e2e  # Run Playwright E2E browser tests only
+./mvnw clean verify           # Full build + unit tests + Selenide E2E tests
+./mvnw verify -pl ed-idp-e2e  # Run Selenide E2E browser tests only
 ```
 
 H2 console available at `http://localhost:9000/h2-console` (JDBC URL: `jdbc:h2:mem:authdb`).
@@ -20,7 +20,7 @@ H2 console available at `http://localhost:9000/h2-console` (JDBC URL: `jdbc:h2:m
 Multi-module Maven layout:
 - `ed-idp-core`: Core authorization server, dynamic claims, tenancy, and token policy.
 - `ed-idp-ui`: Admin Console UI (Spring MVC + Thymeleaf + HTMX).
-- `ed-idp-e2e`: Playwright Java browser automation suite.
+- `ed-idp-e2e`: Selenide (Selenium 4) browser automation suite.
 
 Within `ed-idp-core`, a **Vertical-Slice Modular Monolith** is enforced by Spring Modulith package annotations (`@ApplicationModule` in `package-info.java`):
 
@@ -60,10 +60,10 @@ Within `ed-idp-core`, a **Vertical-Slice Modular Monolith** is enforced by Sprin
 
 - Integration tests extend `AuthServerIntegrationTests` (provides `TestRestTemplate`, OAuth flow helpers, CSRF extraction).
 - Unit tests use Mockito + AssertJ.
-- E2E browser tests in `ed-idp-e2e` use Playwright Java + JUnit 5 + Maven Failsafe:
+- E2E browser tests in `ed-idp-e2e` use Selenide (Selenium 4) + JUnit 5 + Maven Failsafe:
   - Base class: `BaseE2ETest` boots `UiApplication` on `RANDOM_PORT`.
   - Page Object Models: `AdminLoginPage`, `AdminDashboardPage`, `AdminClientsPage`, `AdminUsersPage`, `OAuthConsentPage`.
-  - Failure artifacts: traces (`.zip`), screenshots (`.png`), and videos (`.webm`) are saved to `ed-idp-e2e/target/playwright-*`. Traces can be viewed via `npx playwright show-trace <trace.zip>`.
+  - Failure artifacts: screenshots (`.png`) and HTML source (`.html`) are saved to `ed-idp-e2e/target/selenide-reports/`.
 - H2 state leaks between Spring contexts — use a unique `spring.datasource.url` in `@TestPropertySource` when overriding properties.
 - Unauthenticated `/oauth2/token` falls through to the login page rather than returning `invalid_client`; pass invalid credentials explicitly to force the error response.
 - Custom introspection/revocation endpoints require the auth/consent services to be registered explicitly in `SecurityConfig`.

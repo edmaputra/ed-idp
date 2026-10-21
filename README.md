@@ -380,7 +380,7 @@ Duration format accepts Spring Boot duration styles like `90s`, `5m`, `7d`.
 # 1. Run unit & slice tests across all modules (fast, no browser started)
 ./mvnw test
 
-# 2. Run full build with unit tests + Playwright E2E browser tests
+# 2. Run full build with unit tests + Selenide E2E browser tests
 ./mvnw clean verify
 
 # 3. Run E2E browser automation tests only
@@ -397,15 +397,8 @@ Duration format accepts Spring Boot duration styles like `90s`, `5m`, `7d`.
 - **OAuth 2.1 PKCE Flow (`OAuth2PkceAuthorizationFlowE2EIT`)**: Headless browser PKCE code grant and token exchange.
 - **Interactive Consent Flow (`OAuthConsentFlowE2EIT`)**: Scope toggling, approval token issuance, and denial handling.
 
-### Playwright Failure Diagnostics
-If an E2E test fails, trace archives, viewport screenshots, and video recordings are automatically generated into `ed-idp-e2e/target/`:
-- Screenshots: `ed-idp-e2e/target/playwright-screenshots/*.png`
-- Traces: `ed-idp-e2e/target/playwright-traces/*.zip`
-- Videos: `ed-idp-e2e/target/playwright-videos/*.webm`
-
-Inspect traces frame-by-frame with Playwright's Trace Viewer:
-```bash
-npx playwright show-trace ed-idp-e2e/target/playwright-traces/<TestClass>_<testMethod>.zip
-```
+### Failure Diagnostics
+If an E2E test fails, Selenide automatically captures full-page screenshots and HTML DOM snapshots into:
+- Screenshots & HTML source: `ed-idp-e2e/target/selenide-reports/`
 
 For complete architectural details and Page Object patterns, see [How-To: End-to-End Browser Automation Testing](docs/how-to/07-end-to-end-testing.md).

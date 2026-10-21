@@ -8,7 +8,7 @@ Central navigation manifest and architectural constraints for AI agents working 
 
 - **Language**: Java 25
 - **Framework**: Spring Boot 4.1.1, Spring Authorization Server, Spring Modulith 2.1.0
-- **Testing & Automation**: JUnit 5, AssertJ, Playwright Java 1.52.0, Maven Failsafe Plugin
+- **Testing & Automation**: JUnit 5, AssertJ, Selenide 7.7.3 (Selenium 4), Maven Failsafe Plugin
 - **Build Tool**: Maven Wrapper (`./mvnw`)
 - **Database / Persistence**: Spring Data JPA, Spring JDBC, Flyway Migrations, H2 (test/dev)
 - **Standards**: Inherited from `.agents/rules/java-kotlin/` and `.agents/rules/shared/`
@@ -20,7 +20,7 @@ Central navigation manifest and architectural constraints for AI agents working 
 The codebase is organized as a multi-module Maven reactor:
 - `ed-idp-core`: Core OAuth 2.1 & OIDC Authorization Server, token policy, claims, dynamic tenancy, and security filter chains.
 - `ed-idp-ui`: Admin Console web application, HTMX fragments, and UI security filter chain.
-- `ed-idp-e2e`: Playwright Java end-to-end browser and protocol test automation suite.
+- `ed-idp-e2e`: Selenide (Selenium 4) end-to-end browser and protocol test automation suite.
 
 Within `ed-idp-core`, capability slices are governed by Spring Modulith (`@ApplicationModule` in each slice's `package-info.java`):
 
@@ -48,8 +48,8 @@ Dependencies flow strictly along declared `@ApplicationModule(allowedDependencie
 - **Run Full Verification (Unit + E2E Browser)**: `./mvnw clean verify`
 - **Run E2E Browser Tests Only**: `./mvnw verify -pl ed-idp-e2e`
 - **Run Single E2E Test**: `./mvnw test -pl ed-idp-e2e -Dtest=ClassName -Dsurefire.failIfNoSpecifiedTests=false`
-- **Inspect Playwright Trace**: `npx playwright show-trace ed-idp-e2e/target/playwright-traces/<TestClass>_<testMethod>.zip`
-- **Generate Coverage Summary**: `python3 .agents/scripts/coverage/generate-jacoco-summary.py --output target/coverage-summary.md`
+- **Inspect Failure Screenshots & Reports**: Look in `ed-idp-e2e/target/selenide-reports/`
+- **Generate Coverage Summary**: `python3 .github/scripts/generate-jacoco-summary.py --output target/coverage-summary.md`
 - **Run Application**: `./mvnw spring-boot:run` (default port: `9000`)
 - **Refresh Structure Map**: `python3 .agents/scripts/scan-structure.py --force`
 
@@ -71,7 +71,7 @@ All contributions MUST strictly comply with standards defined in `.agents/rules/
 2. **Testing & Browser Automation (`docs/how-to/07-end-to-end-testing.md`)**:
    - **Test Tier Separation**: Unit and WebMvc slice tests run under Surefire during `mvn test` without starting browser instances. End-to-end integration tests live in `ed-idp-e2e` and run under Failsafe during `mvn verify`.
    - **Page Object Model (POM)**: All browser UI interactions must be encapsulated in Page Objects (`io.github.edmaputra.edidp.e2e.pages.*`) with fluent navigation chaining.
-   - **Failure Diagnostics**: `PlaywrightExtension` captures trace archives (`.zip`), screenshots (`.png`), and video (`.webm`) on test failure into `ed-idp-e2e/target/playwright-*`.
+   - **Failure Diagnostics**: Selenide automatically captures screenshots (`.png`) and HTML page source (`.html`) on test failure into `ed-idp-e2e/target/selenide-reports/`.
    - **Dynamic Ports**: E2E tests must bind to random ports (`webEnvironment = RANDOM_PORT`) and resolve endpoints via `baseUrl()` or `url(path)`.
 
 3. **Logging & Observability (`rules/java-kotlin/logging-and-observability.md`)**:
@@ -87,6 +87,6 @@ All contributions MUST strictly comply with standards defined in `.agents/rules/
    - Antigravity lifecycle hooks automatically refresh the map if missing.
 
 6. **CI Pipeline & Code Coverage (`rules/shared/git-and-ci-standards.md`)**:
-   - Automated CI runs via `.github/workflows/ci.yml` targeting Java 25 with Playwright Chromium installed.
+   - Automated CI runs via `.github/workflows/ci.yml` targeting Java 25.
    - Target a minimum of **80% line coverage** on core business and domain logic.
    - Multi-module JaCoCo coverage summaries are generated via `python3 .agents/scripts/coverage/generate-jacoco-summary.py` and posted idempotently on PRs.

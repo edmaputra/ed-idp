@@ -23,7 +23,7 @@ class AdminUsersE2EIT extends BaseE2ETest {
   @Test
   @DisplayName("Should provision a new user via HTMX and authenticate successfully with new credentials")
   void shouldProvisionUserAndAuthenticateSuccessfully() {
-    AdminLoginPage loginPage = new AdminLoginPage(page(), baseUrl());
+    AdminLoginPage loginPage = new AdminLoginPage(baseUrl());
     AdminDashboardPage adminDashboard = loginPage.navigate().loginAsAdmin("admin@example.com", "admin-password");
 
     AdminUsersPage usersPage = adminDashboard.goToUsers();

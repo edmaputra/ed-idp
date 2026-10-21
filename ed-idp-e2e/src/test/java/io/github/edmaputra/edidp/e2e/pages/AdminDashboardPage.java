@@ -1,6 +1,15 @@
 package io.github.edmaputra.edidp.e2e.pages;
 
-import com.microsoft.playwright.Page;
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selectors.byText;
+import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.open;
+import static com.codeborne.selenide.Selenide.title;
+import static com.codeborne.selenide.WebDriverConditions.urlStartingWith;
+
+import com.codeborne.selenide.Selenide;
+import com.codeborne.selenide.WebDriverRunner;
+import java.util.Objects;
 
 /**
  * Page Object representing the administrative overview dashboard (/admin/dashboard).
@@ -10,46 +19,44 @@ import com.microsoft.playwright.Page;
  */
 public class AdminDashboardPage {
 
-  private final Page page;
   private final String baseUrl;
 
-  public AdminDashboardPage(Page page, String baseUrl) {
-    this.page = page;
-    this.baseUrl = baseUrl;
+  public AdminDashboardPage(String baseUrl) {
+    this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl must not be null");
   }
 
   public AdminDashboardPage navigate() {
-    page.navigate(baseUrl + "/admin/dashboard");
+    open(baseUrl + "/admin/dashboard");
     return this;
   }
 
   public boolean isDisplayed() {
-    return page.url().contains("/admin/dashboard") && page.title().contains("Dashboard");
+    return WebDriverRunner.url().contains("/admin/dashboard") && title().contains("Dashboard");
   }
 
   public String getHeaderTitle() {
-    return page.locator("header h1, header h2, .app-topbar h1").first().innerText().trim();
+    return $("header h1, header h2, .app-topbar h1").shouldBe(visible).text().trim();
   }
 
   public String getPageContent() {
-    return page.content();
+    return $("body").text();
   }
 
   public AdminClientsPage goToClients() {
-    page.locator("a.nav-link:has-text('OAuth2 Clients')").click();
-    page.waitForURL("**/admin/clients");
-    return new AdminClientsPage(page, baseUrl);
+    $(byText("OAuth2 Clients")).click();
+    Selenide.webdriver().shouldHave(urlStartingWith(baseUrl + "/admin/clients"));
+    return new AdminClientsPage(baseUrl);
   }
 
   public AdminUsersPage goToUsers() {
-    page.locator("a.nav-link:has-text('Users & IAM')").click();
-    page.waitForURL("**/admin/users");
-    return new AdminUsersPage(page, baseUrl);
+    $(byText("Users & IAM")).click();
+    Selenide.webdriver().shouldHave(urlStartingWith(baseUrl + "/admin/users"));
+    return new AdminUsersPage(baseUrl);
   }
 
   public AdminLoginPage signOut() {
-    page.locator("button:has-text('Sign Out')").click();
-    page.waitForURL("**/admin/login?logout");
-    return new AdminLoginPage(page, baseUrl);
+    $(byText("Sign Out")).click();
+    Selenide.webdriver().shouldHave(urlStartingWith(baseUrl + "/admin/login?logout"));
+    return new AdminLoginPage(baseUrl);
   }
 }

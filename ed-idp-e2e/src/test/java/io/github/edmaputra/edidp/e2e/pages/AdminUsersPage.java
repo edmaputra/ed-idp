@@ -1,7 +1,15 @@
 package io.github.edmaputra.edidp.e2e.pages;
 
-import com.microsoft.playwright.Locator;
-import com.microsoft.playwright.Page;
+import static com.codeborne.selenide.Condition.text;
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selectors.byText;
+import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.$$;
+import static com.codeborne.selenide.Selenide.open;
+
+import com.codeborne.selenide.SelenideElement;
+import com.codeborne.selenide.WebDriverRunner;
+import java.util.Objects;
 
 /**
  * Page Object representing Users and IAM identity management in the Admin Console (/admin/users).
@@ -11,7 +19,6 @@ import com.microsoft.playwright.Page;
  */
 public class AdminUsersPage {
 
-  private final Page page;
   private final String baseUrl;
 
   /**
@@ -25,55 +32,53 @@ public class AdminUsersPage {
       String role,
       String tenantId) {}
 
-  public AdminUsersPage(Page page, String baseUrl) {
-    this.page = page;
-    this.baseUrl = baseUrl;
+  public AdminUsersPage(String baseUrl) {
+    this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl must not be null");
   }
 
   public AdminUsersPage navigate() {
-    page.navigate(baseUrl + "/admin/users");
+    open(baseUrl + "/admin/users");
     return this;
   }
 
   public boolean isDisplayed() {
-    return page.url().contains("/admin/users") && page.locator("#users-table").isVisible();
+    return WebDriverRunner.url().contains("/admin/users") && $("#users-table").is(visible);
   }
 
   public AdminUsersPage createUser(UserRegistration user) {
-    page.locator("input[name='username']").fill(user.username());
-    page.locator("input[name='password']").fill(user.password());
-    page.locator("input[name='fullName']").fill(user.fullName());
-    page.locator("input[name='email']").fill(user.email());
-    page.locator("select[name='role']").selectOption(user.role());
-    page.locator("input[name='tenantId']").fill(user.tenantId());
+    $("input[name='username']").setValue(user.username());
+    $("input[name='password']").setValue(user.password());
+    $("input[name='fullName']").setValue(user.fullName());
+    $("input[name='email']").setValue(user.email());
+    $("select[name='role']").selectOptionByValue(user.role());
+    $("input[name='tenantId']").setValue(user.tenantId());
 
-    page.locator("button:has-text('Create User')").click();
+    $(byText("Create User")).click();
     return this;
   }
 
   public boolean isUserInTable(String username) {
-    return page.locator("#users-tbody tr td", new Page.LocatorOptions().setHasText(username)).count() > 0;
+    return $$("#users-tbody tr").findBy(text(username)).exists();
   }
 
   public AdminUsersPage toggleUserStatus(String username) {
-    Locator row = page.locator("#users-tbody tr", new Page.LocatorOptions()
-        .setHas(page.locator("td", new Page.LocatorOptions().setHasText(username))));
-    row.locator("button:has-text('Suspend'), button:has-text('Activate')").first().click();
+    SelenideElement row = $$("#users-tbody tr").findBy(text(username));
+    row.find("button.btn-outline-warning, button.btn-outline-success")
+        .scrollIntoView("{behavior: 'instant', block: 'center'}")
+        .click();
     return this;
   }
 
   public AdminUsersPage clickRefresh() {
-    page.locator("button:has-text('Refresh Table')").click();
+    $(byText("Refresh Table")).click();
     return this;
   }
 
   public void waitForToastContaining(String text) {
-    page.locator("#toast-container .toast", new Page.LocatorOptions().setHasText(text)).first().waitFor();
+    $("#toast-container .toast").shouldHave(text(text));
   }
 
   public String getToastMessage() {
-    Locator toast = page.locator("#toast-container .toast").last();
-    toast.waitFor();
-    return toast.innerText().trim();
+    return $("#toast-container .toast").shouldBe(visible).text().trim();
   }
 }

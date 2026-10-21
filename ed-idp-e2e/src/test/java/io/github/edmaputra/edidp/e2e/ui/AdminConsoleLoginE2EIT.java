@@ -5,14 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.edmaputra.edidp.e2e.BaseE2ETest;
 import io.github.edmaputra.edidp.e2e.pages.AdminDashboardPage;
 import io.github.edmaputra.edidp.e2e.pages.AdminLoginPage;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * End-to-end browser tests for Admin Console authentication lifecycle,
- * covering login page rendering, bad credential handling, successful authentication,
- * and session sign out using Page Object Model.
+ * End-to-end tests for Admin Console authentication workflows.
  *
  * @author edmaputra
  * @since 0.0.1
@@ -20,37 +17,28 @@ import org.junit.jupiter.api.Test;
 @DisplayName("Admin Console Authentication E2E")
 class AdminConsoleLoginE2EIT extends BaseE2ETest {
 
-  private AdminLoginPage loginPage;
-
-  @BeforeEach
-  void setUp() {
-    this.loginPage = new AdminLoginPage(page(), baseUrl());
-  }
-
   @Test
-  @DisplayName("Should display admin login form with required fields")
-  void shouldDisplayLoginForm() {
-    loginPage.navigate();
-
+  @DisplayName("Should display login view with username and password fields")
+  void shouldDisplayAdminLoginView() {
+    AdminLoginPage loginPage = new AdminLoginPage(baseUrl()).navigate();
     assertThat(loginPage.isDisplayed()).isTrue();
   }
 
   @Test
-  @DisplayName("Should display error message on invalid credentials")
-  void shouldDisplayErrorMessageOnInvalidCredentials() {
-    loginPage.navigate()
-        .fillUsername("unknown-user@example.com")
-        .fillPassword("wrong-password")
-        .submit();
+  @DisplayName("Should reject invalid administrative credentials and render error alert")
+  void shouldRejectInvalidCredentials() {
+    AdminLoginPage loginPage = new AdminLoginPage(baseUrl()).navigate();
+    loginPage.fillUsername("admin@example.com");
+    loginPage.fillPassword("wrong-password");
+    loginPage.submit();
 
-    assertThat(loginPage.getErrorMessage()).contains("Invalid username or password.");
+    assertThat(loginPage.getErrorMessage()).contains("Invalid username or password");
   }
 
   @Test
-  @DisplayName("Should successfully authenticate administrator, display dashboard and sign out")
+  @DisplayName("Should authenticate administrator, display dashboard, and support sign-out")
   void shouldAuthenticateAdministratorAndSignOut() {
-    loginPage.navigate();
-
+    AdminLoginPage loginPage = new AdminLoginPage(baseUrl()).navigate();
     AdminDashboardPage dashboardPage = loginPage.loginAsAdmin("admin@example.com", "admin-password");
 
     assertThat(dashboardPage.isDisplayed()).isTrue();

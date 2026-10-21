@@ -25,7 +25,7 @@ class AdminClientsE2EIT extends BaseE2ETest {
 
   @BeforeEach
   void setUp() {
-    AdminLoginPage loginPage = new AdminLoginPage(page(), baseUrl());
+    AdminLoginPage loginPage = new AdminLoginPage(baseUrl());
     AdminDashboardPage dashboardPage = loginPage.navigate().loginAsAdmin("admin@example.com", "admin-password");
     this.clientsPage = dashboardPage.goToClients();
   }

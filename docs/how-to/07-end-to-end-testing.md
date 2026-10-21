@@ -1,6 +1,6 @@
 # How-To: End-to-End (E2E) Browser Automation Testing
 
-This operational runbook explains how to execute, write, debug, and maintain automated End-to-End (E2E) browser tests in **ed-idp** using **Playwright Java**, **JUnit 5**, and **Maven Failsafe**.
+This operational runbook explains how to execute, write, debug, and maintain automated End-to-End (E2E) browser tests in **ed-idp** using **Selenide** (Selenium 4), **JUnit 5**, and **Maven Failsafe**.
 
 ---
 
@@ -18,7 +18,7 @@ flowchart TD
     subgraph E2ETests["2. Browser E2E Tests (mvn verify)"]
         Failsafe["maven-failsafe-plugin\n(ed-idp-e2e module)"]
         BootServer["Spring Boot embedded Tomcat\n(RANDOM_PORT)"]
-        BrowserEngine["Playwright Chromium Browser Engine\n(Headless)"]
+        BrowserEngine["Selenide / Selenium 4 Browser Engine\n(Headless Chrome/Firefox/Edge)"]
         Failsafe --> BootServer
         Failsafe --> BrowserEngine
         BrowserEngine <-->|"HTTP / WebSocket / DOM"| BootServer
@@ -26,10 +26,11 @@ flowchart TD
 ```
 
 ### Key Highlights
-- **Zero Browser Overhead for Unit Builds**: `mvn test` runs only unit and controller-slice tests without launching Playwright or Chromium.
-- **Dedicated Module**: All browser tests reside in `ed-idp-e2e` to isolate heavyweight dependencies and Playwright node drivers from production artifacts.
+- **Zero Browser Overhead for Unit Builds**: `mvn test` runs only unit and controller-slice tests without launching any browser engine.
+- **Dedicated Module**: All browser tests reside in `ed-idp-e2e` to isolate browser automation dependencies from production artifacts.
 - **Dynamic Port Binding**: Tests run against a live Spring Boot server (`webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT`) to eliminate TCP port collisions during concurrent CI/CD builds.
-- **Automatic Diagnostics**: Every test failure automatically captures a Playwright Trace (`.zip`), failure screenshot (`.png`), and execution video (`.webm`).
+- **Seamless Local Execution**: Selenide uses your system's existing browser (Google Chrome, Firefox, Safari, or Microsoft Edge) via Selenium 4's built-in driver management, eliminating custom binary downloads or platform mismatch issues.
+- **Automatic Diagnostics**: Every test failure automatically captures a full-viewport screenshot (`.png`) and DOM HTML snapshot into `target/selenide-reports/`.
 
 ---
 
@@ -73,13 +74,13 @@ All browser interactions are encapsulated inside reusable Page Object classes un
 |---|---|---|
 | `AdminLoginPage` | `/admin/login` | Fill login form, submit credentials, assert validation toasts and logout notices. |
 | `AdminDashboardPage` | `/admin/dashboard` | Verify header metrics, navigate sidebar items (Clients, Users), sign out. |
-| `AdminClientsPage` | `/admin/clients` | Register client records, assert table rows, handle confirmation dialogs (`page.onceDialog(...)`), delete clients. |
+| `AdminClientsPage` | `/admin/clients` | Register client records, assert table rows, handle confirmation dialogs (`Selenide.confirm()`), delete clients. |
 | `AdminUsersPage` | `/admin/users` | Register users via HTMX, verify table presence, toggle user status. |
 | `OAuthConsentPage` | `/oauth2/authorize-consent` | Inspect requesting client & principal, toggle scope checkboxes, trigger `approve()` or `deny()`. |
 
 ### Writing a New Page Object
 Follow these design rules when creating or updating Page Objects:
-1. Accept `Page page` and `String baseUrl` in constructor.
+1. Accept `String baseUrl` in constructor.
 2. Return `this` or the next target Page Object on navigation/actions for fluent chaining.
 3. Expose high-level user intents (`createUser(...)`, `approve()`) rather than raw selector lookups.
 
@@ -87,25 +88,23 @@ Example:
 ```java
 public class AdminLoginPage {
 
-  private final Page page;
   private final String baseUrl;
 
-  public AdminLoginPage(Page page, String baseUrl) {
-    this.page = Objects.requireNonNull(page, "page must not be null");
+  public AdminLoginPage(String baseUrl) {
     this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl must not be null");
   }
 
   public AdminLoginPage navigate() {
-    page.navigate(baseUrl + "/admin/login");
+    open(baseUrl + "/admin/login");
     return this;
   }
 
   public AdminDashboardPage loginAsAdmin(String email, String password) {
-    page.locator("#username").fill(email);
-    page.locator("#password").fill(password);
-    page.locator("button[type='submit']").click();
-    page.waitForURL("**/admin/dashboard");
-    return new AdminDashboardPage(page, baseUrl);
+    $("#username").setValue(email);
+    $("#password").setValue(password);
+    $("button[type='submit']").click();
+    Selenide.webdriver().shouldHave(urlStartingWith(baseUrl + "/admin/dashboard"));
+    return new AdminDashboardPage(baseUrl);
   }
 }
 ```
@@ -139,7 +138,7 @@ class AdminConsoleLoginE2EIT extends BaseE2ETest {
   @Test
   @DisplayName("Should sign in as administrator and view dashboard")
   void shouldSignInAsAdmin() {
-    AdminLoginPage loginPage = new AdminLoginPage(page(), baseUrl());
+    AdminLoginPage loginPage = new AdminLoginPage(baseUrl());
 
     AdminDashboardPage dashboard = loginPage.navigate()
         .loginAsAdmin("admin@example.com", "admin-password");
@@ -147,78 +146,42 @@ class AdminConsoleLoginE2EIT extends BaseE2ETest {
     assertThat(dashboard.isDisplayed()).isTrue();
     assertThat(dashboard.getHeaderTitle()).contains("Overview Dashboard");
 
-    dashboard.signOut();
-    assertThat(loginPage.isLogoutMessageDisplayed()).isTrue();
+    AdminLoginPage loggedOutPage = dashboard.signOut();
+    assertThat(loggedOutPage.getLogoutMessage()).contains("signed out");
   }
 }
 ```
 
 ---
 
-## 5. Failure Artifacts & Debugging
+## 5. Failure Artifacts & Diagnostics
 
-When a test fails, `PlaywrightExtension` captures detailed diagnostic artifacts into `ed-idp-e2e/target/`:
+When an assertion or action fails, Selenide automatically captures diagnostics into `ed-idp-e2e/target/selenide-reports/`:
 
 ```
 ed-idp-e2e/target/
-├── playwright-screenshots/
-│   └── <TestClass>_<testMethod>.png    # Viewport snapshot at moment of failure
-├── playwright-traces/
-│   └── <TestClass>_<testMethod>.zip    # Complete DOM timeline, network waterfall & console logs
-└── playwright-videos/
-    └── <TestClass>_<testMethod>.webm   # Video playback of entire browser session
-```
-
-### Inspecting Traces with Playwright Trace Viewer
-To inspect network requests, DOM snapshots, and console errors frame-by-frame:
-
-```bash
-npx playwright show-trace ed-idp-e2e/target/playwright-traces/OAuthConsentFlowE2EIT_shouldApproveSelectiveScopesAndIssueTokens.zip
+└── selenide-reports/
+    ├── <TestClass>/<testMethod>/<timestamp>.png   # Full viewport snapshot at failure moment
+    └── <TestClass>/<testMethod>/<timestamp>.html  # Complete HTML DOM state at failure moment
 ```
 
 ---
 
 ## 6. Continuous Integration (GitHub Actions)
 
-The CI workflow `.github/workflows/ci.yml` installs Playwright Chromium and automatically archives failure artifacts on build failure:
+In `.github/workflows/ci.yml`, Selenide runs automatically with Google Chrome pre-installed on GitHub Actions runners without requiring external CLI or browser binary downloads:
 
 ```yaml
-- name: Install Playwright Browsers
-  run: |
-    npx playwright install --with-deps chromium
-
 - name: Build and Verify with Maven
-  run: ./mvnw clean verify
+  run: ./mvnw clean verify -B
 
-- name: Archive Playwright Failure Artifacts
+- name: Upload Test Reports (on failure)
   if: failure()
-  uses: actions/upload-artifact@v4
+  uses: actions/upload-artifact@v7
   with:
-    name: playwright-failure-diagnostics
+    name: surefire-failsafe-reports
     path: |
-      ed-idp-e2e/target/surefire-reports/
-      ed-idp-e2e/target/failsafe-reports/
-      ed-idp-e2e/target/playwright-screenshots/
-      ed-idp-e2e/target/playwright-traces/
-      ed-idp-e2e/target/playwright-videos/
-    retention-days: 7
-```
-
----
-
-## 7. Platform Specifics & Troubleshooting
-
-### Ubuntu 26.04+ (Noble / Resolute) Platform Override
-If running on newer Linux distributions where Playwright prints:
-`ERROR: Playwright does not support chromium on ubuntu26.04-x64`
-
-The Maven build is pre-configured with the environment override in `ed-idp-e2e/pom.xml`:
-```xml
-<environmentVariables>
-  <PLAYWRIGHT_HOST_PLATFORM_OVERRIDE>ubuntu24.04-x64</PLAYWRIGHT_HOST_PLATFORM_OVERRIDE>
-</environmentVariables>
-```
-If executing manually in a shell, export:
-```bash
-export PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64
+      **/target/surefire-reports/**
+      **/target/failsafe-reports/**
+      **/target/selenide-reports/**
 ```

@@ -1,22 +1,25 @@
 package io.github.edmaputra.edidp.e2e.protocol;
 
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selenide.$;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.microsoft.playwright.APIResponse;
-import com.microsoft.playwright.options.FormData;
-import com.microsoft.playwright.options.RequestOptions;
+import com.codeborne.selenide.Selenide;
+import com.codeborne.selenide.WebDriverRunner;
 import io.github.edmaputra.edidp.e2e.BaseE2ETest;
 import io.github.edmaputra.edidp.e2e.pages.OAuthConsentPage;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
@@ -43,27 +46,17 @@ class OAuthConsentFlowE2EIT extends BaseE2ETest {
   @DisplayName("Should display consent screen and redirect with access_denied when user denies")
   void shouldRedirectWithAccessDeniedWhenUserDenies() {
     String state = "deny-state-" + UUID.randomUUID();
-    AtomicReference<String> redirectRef = new AtomicReference<>();
 
-    page().onResponse(response -> {
-      String location = response.headerValue("location");
-      if (location != null && location.contains("/login/oauth2/code/demo-client")) {
-        redirectRef.set(location);
-      }
-    });
-
-    OAuthConsentPage consentPage = new OAuthConsentPage(page(), baseUrl());
+    OAuthConsentPage consentPage = new OAuthConsentPage(baseUrl());
     consentPage.navigate(CLIENT_ID, REDIRECT_URI, "openid profile email", state);
 
-    // Wait for login form or consent screen to be ready
-    page().waitForSelector("#username, h1:has-text('Authorization Consent')");
-    if (page().locator("#username").isVisible()) {
-      page().locator("#username").fill("demo-user@example.com");
-      page().locator("#password").fill("demo-password");
-      page().locator("button[type='submit']").click();
+    // If redirected to login, authenticate as demo user
+    if ($("#username").is(visible)) {
+      $("#username").setValue("demo-user@example.com");
+      $("#password").setValue("demo-password");
+      $("button[type='submit']").click();
     }
 
-    page().waitForSelector("h1:has-text('Authorization Consent')");
     assertThat(consentPage.isDisplayed()).isTrue();
     assertThat(consentPage.getClientName()).contains("Demo Client");
     assertThat(consentPage.getPrincipalName()).contains("demo-user@example.com");
@@ -74,8 +67,9 @@ class OAuthConsentFlowE2EIT extends BaseE2ETest {
     // User denies consent
     consentPage.deny();
 
-    page().waitForCondition(() -> redirectRef.get() != null);
-    String redirectLocation = redirectRef.get();
+    // Browser is redirected to callback with access_denied
+    Selenide.Wait().until(driver -> driver.getCurrentUrl().contains("access_denied"));
+    String redirectLocation = WebDriverRunner.url();
     assertThat(redirectLocation).isNotNull();
 
     Map<String, String> params = extractQueryParams(redirectLocation);
@@ -87,27 +81,17 @@ class OAuthConsentFlowE2EIT extends BaseE2ETest {
   @DisplayName("Should approve consent with selective scopes, issue code, and exchange for tokens")
   void shouldApproveSelectiveScopesAndIssueTokens() throws Exception {
     String state = "approve-state-" + UUID.randomUUID();
-    AtomicReference<String> codeRedirectRef = new AtomicReference<>();
 
-    page().onResponse(response -> {
-      String location = response.headerValue("location");
-      if (location != null && location.contains("code=")) {
-        codeRedirectRef.set(location);
-      }
-    });
-
-    OAuthConsentPage consentPage = new OAuthConsentPage(page(), baseUrl());
+    OAuthConsentPage consentPage = new OAuthConsentPage(baseUrl());
     consentPage.navigate(CLIENT_ID, REDIRECT_URI, "openid profile email", state);
 
-    // Wait for login form or consent screen to be ready
-    page().waitForSelector("#username, h1:has-text('Authorization Consent')");
-    if (page().locator("#username").isVisible()) {
-      page().locator("#username").fill("demo-user@example.com");
-      page().locator("#password").fill("demo-password");
-      page().locator("button[type='submit']").click();
+    // If redirected to login, authenticate as demo user
+    if ($("#username").is(visible)) {
+      $("#username").setValue("demo-user@example.com");
+      $("#password").setValue("demo-password");
+      $("button[type='submit']").click();
     }
 
-    page().waitForSelector("h1:has-text('Authorization Consent')");
     assertThat(consentPage.isDisplayed()).isTrue();
 
     // Selectively uncheck 'email' scope
@@ -119,8 +103,9 @@ class OAuthConsentFlowE2EIT extends BaseE2ETest {
     // User approves selected scopes
     consentPage.approve();
 
-    page().waitForCondition(() -> codeRedirectRef.get() != null);
-    String redirectLocation = codeRedirectRef.get();
+    // Browser is redirected to callback with authorization code
+    Selenide.Wait().until(driver -> driver.getCurrentUrl().contains("code="));
+    String redirectLocation = WebDriverRunner.url();
     assertThat(redirectLocation).isNotNull();
 
     Map<String, String> params = extractQueryParams(redirectLocation);
@@ -129,23 +114,27 @@ class OAuthConsentFlowE2EIT extends BaseE2ETest {
     assertThat(code).isNotBlank();
 
     // Exchange code for tokens at /oauth2/token using demo-client credentials
-    FormData form = FormData.create()
-        .set("grant_type", "authorization_code")
-        .set("code", code)
-        .set("redirect_uri", REDIRECT_URI);
+    String formBody = String.format(
+        "grant_type=authorization_code&code=%s&redirect_uri=%s",
+        URLEncoder.encode(code, StandardCharsets.UTF_8),
+        URLEncoder.encode(REDIRECT_URI, StandardCharsets.UTF_8)
+    );
 
     String basicAuth = "Basic " + Base64.getEncoder().encodeToString(
         (CLIENT_ID + ":" + CLIENT_SECRET).getBytes(StandardCharsets.UTF_8));
 
-    APIResponse tokenResponse = page().request().post(url("/oauth2/token"),
-        RequestOptions.create()
-            .setHeader("Content-Type", "application/x-www-form-urlencoded")
-            .setHeader("Authorization", basicAuth)
-            .setForm(form));
+    HttpClient httpClient = HttpClient.newHttpClient();
+    HttpRequest tokenRequest = HttpRequest.newBuilder()
+        .uri(URI.create(url("/oauth2/token")))
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .header("Authorization", basicAuth)
+        .POST(HttpRequest.BodyPublishers.ofString(formBody))
+        .build();
 
-    assertThat(tokenResponse.status()).isEqualTo(200);
+    HttpResponse<String> tokenResponse = httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString());
+    assertThat(tokenResponse.statusCode()).isEqualTo(200);
 
-    JsonNode tokenJson = objectMapper.readTree(tokenResponse.text());
+    JsonNode tokenJson = objectMapper.readTree(tokenResponse.body());
     assertThat(tokenJson.hasNonNull("access_token")).isTrue();
     assertThat(tokenJson.hasNonNull("id_token")).isTrue();
 

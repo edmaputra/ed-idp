@@ -1,15 +1,19 @@
 package io.github.edmaputra.edidp.e2e.protocol;
 
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.open;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.microsoft.playwright.APIResponse;
-import com.microsoft.playwright.Response;
-import com.microsoft.playwright.options.FormData;
-import com.microsoft.playwright.options.RequestOptions;
+import com.codeborne.selenide.Selenide;
+import com.codeborne.selenide.WebDriverRunner;
 import io.github.edmaputra.edidp.e2e.BaseE2ETest;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Arrays;
@@ -17,7 +21,6 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
@@ -44,14 +47,6 @@ class OAuth2PkceAuthorizationFlowE2EIT extends BaseE2ETest {
     String codeChallenge = toS256CodeChallenge(codeVerifier);
     String expectedState = "pkce-e2e-state-" + UUID.randomUUID();
 
-    AtomicReference<String> callbackLocationRef = new AtomicReference<>();
-    page().onResponse(response -> {
-      String location = response.headerValue("location");
-      if (location != null && location.contains("/login/oauth2/code/")) {
-        callbackLocationRef.set(location);
-      }
-    });
-
     String authorizeUrl = url("/oauth2/authorize"
         + "?response_type=code"
         + "&client_id=" + URLEncoder.encode(PKCE_CLIENT_ID, StandardCharsets.UTF_8)
@@ -62,21 +57,21 @@ class OAuth2PkceAuthorizationFlowE2EIT extends BaseE2ETest {
         + "&state=" + URLEncoder.encode(expectedState, StandardCharsets.UTF_8));
 
     // 1. Navigate browser to authorization endpoint
-    page().navigate(authorizeUrl);
+    open(authorizeUrl);
 
     // 2. Perform interactive login as demo user
-    page().locator("#username").fill("demo-user@example.com");
-    page().locator("#password").fill("demo-password");
-    page().locator("button[type='submit']").click();
+    $("#username").setValue("demo-user@example.com");
+    $("#password").setValue("demo-password");
+    $("button[type='submit']").click();
 
     // 3. Handle interactive consent page if presented
-    if (page().locator("button.btn-approve").isVisible()) {
-      page().locator("button.btn-approve").click();
+    if ($("button.btn-approve").is(visible)) {
+      $("button.btn-approve").click();
     }
 
     // 4. Validate that callback redirect was emitted with authorization code and state
-    page().waitForCondition(() -> callbackLocationRef.get() != null);
-    String callbackLocation = callbackLocationRef.get();
+    Selenide.Wait().until(driver -> driver.getCurrentUrl().contains("code="));
+    String callbackLocation = WebDriverRunner.url();
     assertThat(callbackLocation).isNotBlank();
 
     URI callbackUri = URI.create(callbackLocation);
@@ -87,22 +82,25 @@ class OAuth2PkceAuthorizationFlowE2EIT extends BaseE2ETest {
     assertThat(authorizationCode).isNotBlank();
 
     // 5. Exchange authorization code and code_verifier for OAuth tokens at /oauth2/token
-    FormData form = FormData.create()
-        .set("grant_type", "authorization_code")
-        .set("client_id", PKCE_CLIENT_ID)
-        .set("code", authorizationCode)
-        .set("redirect_uri", REDIRECT_URI)
-        .set("code_verifier", codeVerifier);
-
-    APIResponse tokenResponse = page().request().post(url("/oauth2/token"),
-        RequestOptions.create()
-            .setHeader("Content-Type", "application/x-www-form-urlencoded")
-            .setForm(form)
+    String formBody = String.format(
+        "grant_type=authorization_code&client_id=%s&code=%s&redirect_uri=%s&code_verifier=%s",
+        URLEncoder.encode(PKCE_CLIENT_ID, StandardCharsets.UTF_8),
+        URLEncoder.encode(authorizationCode, StandardCharsets.UTF_8),
+        URLEncoder.encode(REDIRECT_URI, StandardCharsets.UTF_8),
+        URLEncoder.encode(codeVerifier, StandardCharsets.UTF_8)
     );
 
-    assertThat(tokenResponse.status()).isEqualTo(200);
+    HttpClient httpClient = HttpClient.newHttpClient();
+    HttpRequest tokenRequest = HttpRequest.newBuilder()
+        .uri(URI.create(url("/oauth2/token")))
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .POST(HttpRequest.BodyPublishers.ofString(formBody))
+        .build();
 
-    JsonNode tokenBody = objectMapper.readTree(tokenResponse.text());
+    HttpResponse<String> tokenResponse = httpClient.send(tokenRequest, HttpResponse.BodyHandlers.ofString());
+    assertThat(tokenResponse.statusCode()).isEqualTo(200);
+
+    JsonNode tokenBody = objectMapper.readTree(tokenResponse.body());
     assertThat(tokenBody.path("access_token").asText()).isNotBlank();
     assertThat(tokenBody.path("token_type").asText()).isEqualToIgnoringCase("Bearer");
     assertThat(tokenBody.path("expires_in").asLong()).isGreaterThan(0);

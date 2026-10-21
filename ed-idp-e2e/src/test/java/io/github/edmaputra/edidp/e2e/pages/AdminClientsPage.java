@@ -1,8 +1,17 @@
 package io.github.edmaputra.edidp.e2e.pages;
 
-import com.microsoft.playwright.Dialog;
-import com.microsoft.playwright.Locator;
-import com.microsoft.playwright.Page;
+import static com.codeborne.selenide.Condition.disappear;
+import static com.codeborne.selenide.Condition.text;
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selectors.byText;
+import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.$$;
+import static com.codeborne.selenide.Selenide.open;
+
+import com.codeborne.selenide.Selenide;
+import com.codeborne.selenide.SelenideElement;
+import com.codeborne.selenide.WebDriverRunner;
+import java.util.Objects;
 
 /**
  * Page Object representing OAuth 2.1 client management in the Admin Console (/admin/clients).
@@ -12,7 +21,6 @@ import com.microsoft.playwright.Page;
  */
 public class AdminClientsPage {
 
-  private final Page page;
   private final String baseUrl;
 
   /**
@@ -27,59 +35,54 @@ public class AdminClientsPage {
       String scopes,
       String redirectUris) {}
 
-  public AdminClientsPage(Page page, String baseUrl) {
-    this.page = page;
-    this.baseUrl = baseUrl;
+  public AdminClientsPage(String baseUrl) {
+    this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl must not be null");
   }
 
   public AdminClientsPage navigate() {
-    page.navigate(baseUrl + "/admin/clients");
+    open(baseUrl + "/admin/clients");
     return this;
   }
 
   public boolean isDisplayed() {
-    return page.url().contains("/admin/clients") && page.locator("#clients-table").isVisible();
+    return WebDriverRunner.url().contains("/admin/clients") && $("#clients-table").is(visible);
   }
 
   public AdminClientsPage registerClient(ClientRegistration client) {
-    page.locator("input[name='clientId']").fill(client.clientId());
-    page.locator("input[name='clientSecret']").fill(client.clientSecret());
-    page.locator("input[name='clientName']").fill(client.clientName());
-    page.locator("input[name='tenantId']").fill(client.tenantId());
-    page.locator("input[name='grantTypes']").fill(client.grantTypes());
-    page.locator("input[name='scopes']").fill(client.scopes());
-    page.locator("input[name='redirectUris']").fill(client.redirectUris());
+    $("input[name='clientId']").setValue(client.clientId());
+    $("input[name='clientSecret']").setValue(client.clientSecret());
+    $("input[name='clientName']").setValue(client.clientName());
+    $("input[name='tenantId']").setValue(client.tenantId());
+    $("input[name='grantTypes']").setValue(client.grantTypes());
+    $("input[name='scopes']").setValue(client.scopes());
+    $("input[name='redirectUris']").setValue(client.redirectUris());
 
-    page.locator("button:has-text('Register Client')").click();
+    $(byText("Register Client")).click();
     return this;
   }
 
   public boolean isClientInTable(String clientId) {
-    return page.locator("#clients-tbody tr td", new Page.LocatorOptions().setHasText(clientId)).count() > 0;
+    return $$("#clients-tbody tr").findBy(text(clientId)).exists();
   }
 
   public AdminClientsPage deleteClient(String clientId) {
-    page.onceDialog(Dialog::accept);
-
-    Locator row = page.locator("#clients-tbody tr", new Page.LocatorOptions()
-        .setHas(page.locator("td", new Page.LocatorOptions().setHasText(clientId))));
-    row.locator("button:has-text('Delete')").click();
-    row.waitFor(new Locator.WaitForOptions().setState(com.microsoft.playwright.options.WaitForSelectorState.DETACHED));
+    SelenideElement row = $$("#clients-tbody tr").findBy(text(clientId));
+    row.find(byText("Delete")).scrollIntoView("{behavior: 'instant', block: 'center'}").click();
+    Selenide.confirm();
+    row.should(disappear);
     return this;
   }
 
   public AdminClientsPage clickRefresh() {
-    page.locator("button:has-text('Refresh Table')").click();
+    $(byText("Refresh Table")).click();
     return this;
   }
 
   public void waitForToastContaining(String text) {
-    page.locator("#toast-container .toast", new Page.LocatorOptions().setHasText(text)).first().waitFor();
+    $("#toast-container .toast").shouldHave(text(text));
   }
 
   public String getToastMessage() {
-    Locator toast = page.locator("#toast-container .toast").last();
-    toast.waitFor();
-    return toast.innerText().trim();
+    return $("#toast-container .toast").shouldBe(visible).text().trim();
   }
 }

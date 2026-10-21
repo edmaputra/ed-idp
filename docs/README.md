@@ -75,7 +75,7 @@ docs/
 | Provision users & dynamic claims | [how-to/04-user-profiles-and-dynamic-claims.md](how-to/04-user-profiles-and-dynamic-claims.md) | Identity Admins |
 | Validate / revoke tokens in Resource Servers | [how-to/05-resource-server-token-validation.md](how-to/05-resource-server-token-validation.md) | Backend / Gateway Engineers |
 | Deploy with PostgreSQL & secure Ingress | [how-to/06-database-and-production-setup.md](how-to/06-database-and-production-setup.md) | DevOps / SREs |
-| Run & write Playwright E2E browser tests | [how-to/07-end-to-end-testing.md](how-to/07-end-to-end-testing.md) | QA / Software Engineers |
+| Run & write Selenide E2E browser tests | [how-to/07-end-to-end-testing.md](how-to/07-end-to-end-testing.md) | QA / Software Engineers |
 
 ---
 

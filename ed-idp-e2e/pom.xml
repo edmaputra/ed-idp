@@ -22,8 +22,9 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.microsoft.playwright</groupId>
-			<artifactId>playwright</artifactId>
+			<groupId>com.codeborne</groupId>
+			<artifactId>selenide</artifactId>
+			<version>7.7.3</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -37,20 +38,10 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<configuration>
-					<environmentVariables>
-						<PLAYWRIGHT_HOST_PLATFORM_OVERRIDE>ubuntu24.04-x64</PLAYWRIGHT_HOST_PLATFORM_OVERRIDE>
-					</environmentVariables>
-				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
-				<configuration>
-					<environmentVariables>
-						<PLAYWRIGHT_HOST_PLATFORM_OVERRIDE>ubuntu24.04-x64</PLAYWRIGHT_HOST_PLATFORM_OVERRIDE>
-					</environmentVariables>
-				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.jacoco</groupId>

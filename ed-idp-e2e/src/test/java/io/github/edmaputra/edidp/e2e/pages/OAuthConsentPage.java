@@ -1,7 +1,13 @@
 package io.github.edmaputra.edidp.e2e.pages;
 
-import com.microsoft.playwright.Locator;
-import com.microsoft.playwright.Page;
+import static com.codeborne.selenide.Condition.checked;
+import static com.codeborne.selenide.Condition.text;
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.$$;
+import static com.codeborne.selenide.Selenide.open;
+
+import com.codeborne.selenide.SelenideElement;
 import java.util.Objects;
 
 /**
@@ -13,91 +19,52 @@ import java.util.Objects;
  */
 public class OAuthConsentPage {
 
-  private final Page page;
   private final String baseUrl;
 
-  public OAuthConsentPage(Page page, String baseUrl) {
-    this.page = Objects.requireNonNull(page, "page must not be null");
+  public OAuthConsentPage(String baseUrl) {
     this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl must not be null");
   }
 
-  /**
-   * Navigates directly to the consent screen with the provided query parameters.
-   *
-   * @param clientId client identifier
-   * @param redirectUri registered callback URI
-   * @param scopes space-delimited requested scopes
-   * @param state authorization state
-   * @return this page object
-   */
   public OAuthConsentPage navigate(String clientId, String redirectUri, String scopes, String state) {
     String url = String.format("%s/oauth2/authorize-consent?client_id=%s&redirect_uri=%s&requested_scopes=%s&state=%s",
         baseUrl, clientId, redirectUri, scopes, state);
-    page.navigate(url);
+    open(url);
     return this;
   }
 
-  /**
-   * Checks whether the consent container header is visible.
-   *
-   * @return {@code true} if visible
-   */
   public boolean isDisplayed() {
-    return page.locator("h1:has-text('Authorization Consent')").isVisible();
+    return $("h1").shouldHave(text("Authorization Consent")).is(visible);
   }
 
-  /**
-   * Retrieves the client name displayed in the client information card.
-   *
-   * @return displayed client name
-   */
   public String getClientName() {
-    return page.locator(".client-info span").first().innerText().trim();
+    return $(".client-info span").shouldBe(visible).text().trim();
   }
 
-  /**
-   * Retrieves the principal (user) name displayed in the consent screen.
-   *
-   * @return displayed user principal
-   */
   public String getPrincipalName() {
-    return page.locator(".client-info span").nth(1).innerText().trim();
+    return $$(".client-info span").get(1).shouldBe(visible).text().trim();
   }
 
-  /**
-   * Checks whether a specific scope checkbox is present and checked.
-   *
-   * @param scope scope identifier (e.g. "openid", "profile")
-   * @return {@code true} if checked
-   */
   public boolean isScopeChecked(String scope) {
-    return page.locator("#scope_" + scope).isChecked();
+    return $("#scope_" + scope).is(checked);
   }
 
-  /**
-   * Sets the checked state of a specific scope checkbox.
-   *
-   * @param scope scope identifier
-   * @param checked target state
-   * @return this page object
-   */
-  public OAuthConsentPage setScope(String scope, boolean checked) {
-    Locator checkbox = page.locator("#scope_" + scope);
-    checkbox.setChecked(checked);
+  public OAuthConsentPage setScope(String scope, boolean shouldBeChecked) {
+    SelenideElement checkbox = $("#scope_" + scope);
+    if (checkbox.is(checked) != shouldBeChecked) {
+      checkbox.click();
+    }
     return this;
   }
 
-  /**
-   * Clicks the Approve button to authorize the requested (or checked) scopes.
-   */
-  public void approve() {
-    page.locator("button.btn-approve").click();
+  public OAuthConsentPage deselectScope(String scope) {
+    return setScope(scope, false);
   }
 
-  /**
-   * Clicks the Deny button to reject authorization.
-   */
+  public void approve() {
+    $("button.btn-approve").click();
+  }
+
   public void deny() {
-    page.locator("button.btn-deny").click();
+    $("button.btn-deny").click();
   }
 }

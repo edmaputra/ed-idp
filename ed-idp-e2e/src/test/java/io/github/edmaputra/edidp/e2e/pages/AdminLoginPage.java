@@ -1,7 +1,13 @@
 package io.github.edmaputra.edidp.e2e.pages;
 
-import com.microsoft.playwright.Locator;
-import com.microsoft.playwright.Page;
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.open;
+import static com.codeborne.selenide.Selenide.title;
+import static com.codeborne.selenide.WebDriverConditions.urlStartingWith;
+
+import com.codeborne.selenide.Selenide;
+import java.util.Objects;
 
 /**
  * Page Object encapsulating interactions and assertions on the Admin Console login view (/admin/login).
@@ -11,56 +17,50 @@ import com.microsoft.playwright.Page;
  */
 public class AdminLoginPage {
 
-  private final Page page;
   private final String baseUrl;
 
-  public AdminLoginPage(Page page, String baseUrl) {
-    this.page = page;
-    this.baseUrl = baseUrl;
+  public AdminLoginPage(String baseUrl) {
+    this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl must not be null");
   }
 
   public AdminLoginPage navigate() {
-    page.navigate(baseUrl + "/admin/login");
+    open(baseUrl + "/admin/login");
     return this;
   }
 
   public boolean isDisplayed() {
-    return page.title().contains("Admin Login") && page.locator("#username").isVisible();
+    return title().contains("Admin Login") && $("#username").is(visible);
   }
 
   public AdminLoginPage fillUsername(String username) {
-    page.locator("#username").fill(username);
+    $("#username").setValue(username);
     return this;
   }
 
   public AdminLoginPage fillPassword(String password) {
-    page.locator("#password").fill(password);
+    $("#password").setValue(password);
     return this;
   }
 
   public void submit() {
-    page.locator("button[type='submit']").click();
+    $("button[type='submit']").click();
   }
 
   public AdminDashboardPage loginAsAdmin(String username, String password) {
     fillUsername(username);
     fillPassword(password);
     submit();
-    page.waitForURL("**/admin/dashboard");
-    return new AdminDashboardPage(page, baseUrl);
+    Selenide.webdriver().shouldHave(urlStartingWith(baseUrl + "/admin/dashboard"));
+    return new AdminDashboardPage(baseUrl);
   }
 
   public String getErrorMessage() {
-    page.waitForURL("**/admin/login?error");
-    Locator alert = page.locator(".alert-danger, .alert-error");
-    alert.waitFor();
-    return alert.innerText().trim();
+    Selenide.webdriver().shouldHave(urlStartingWith(baseUrl + "/admin/login?error"));
+    return $(".alert-danger, .alert-error").shouldBe(visible).text().trim();
   }
 
   public String getLogoutMessage() {
-    page.waitForURL("**/admin/login?logout");
-    Locator alert = page.locator(".alert-success, .alert-info");
-    alert.waitFor();
-    return alert.innerText().trim();
+    Selenide.webdriver().shouldHave(urlStartingWith(baseUrl + "/admin/login?logout"));
+    return $(".alert-success, .alert-info").shouldBe(visible).text().trim();
   }
 }

@@ -1,16 +1,21 @@
 package io.github.edmaputra.edidp.e2e;
 
-import com.microsoft.playwright.BrowserContext;
-import com.microsoft.playwright.Page;
+import com.codeborne.selenide.Configuration;
+import com.codeborne.selenide.Selenide;
+import com.codeborne.selenide.junit5.ScreenShooterExtension;
 import io.github.edmaputra.edidp.ui.UiApplication;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 
 /**
- * Base test harness for Playwright-driven end-to-end integration tests.
+ * Base test harness for Selenide-driven end-to-end integration tests.
  * Boots the full Spring Boot application (Core + UI add-on) on a random port
- * and wires up the Playwright browser context lifecycle and diagnostic reporting.
+ * and wires up the Selenide browser lifecycle, automatic failure screenshots, and test isolation.
  *
  * @author edmaputra
  * @since 0.0.1
@@ -22,47 +27,66 @@ import org.springframework.boot.test.web.server.LocalServerPort;
         "edidp.ui.enabled=true"
     }
 )
-@ExtendWith(PlaywrightExtension.class)
+@ExtendWith(ScreenShooterExtension.class)
 public abstract class BaseE2ETest {
 
   @LocalServerPort
   protected int port;
 
-  /**
-   * Returns the current active Playwright page for this test method.
-   *
-   * @return active Playwright {@link Page}
-   */
-  protected Page page() {
-    return PlaywrightExtension.getPage();
+  @BeforeAll
+  static void configureSelenide() {
+    boolean headless = Boolean.parseBoolean(System.getProperty("selenide.headless", "true"));
+    String browser = System.getProperty("selenide.browser", "chrome");
+
+    Configuration.headless = headless;
+    Configuration.browser = browser;
+    Configuration.browserSize = "1920x1080";
+    Configuration.timeout = 8000;
+    Configuration.reportsFolder = "target/selenide-reports";
+    Configuration.savePageSource = true;
+
+    ChromeOptions options = new ChromeOptions();
+    options.addArguments(
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu"
+    );
+    Configuration.browserCapabilities = options;
   }
 
-  /**
-   * Returns the current isolated browser context for this test method.
-   *
-   * @return active Playwright {@link BrowserContext}
-   */
-  protected BrowserContext context() {
-    return PlaywrightExtension.getContext();
+  @BeforeEach
+  void resetBrowserState() {
+    if (com.codeborne.selenide.WebDriverRunner.hasWebDriverStarted()) {
+      try {
+        Selenide.clearBrowserCookies();
+        Selenide.clearBrowserLocalStorage();
+      } catch (Exception ignored) {
+        Selenide.closeWebDriver();
+      }
+    }
+  }
+
+  @AfterAll
+  static void tearDownDriver() {
+    Selenide.closeWebDriver();
   }
 
   /**
    * Constructs the base URL for the running embedded server.
    *
-   * @return server root URL (e.g. {@code http://localhost:12345})
+   * @return base URL (e.g. {@code http://localhost:PORT})
    */
   protected String baseUrl() {
     return "http://localhost:" + port;
   }
 
   /**
-   * Resolves a relative application path to a fully qualified URL on the running test server.
+   * Constructs an absolute URL pointing to the given application path.
    *
-   * @param path relative path (e.g. {@code /admin/login})
-   * @return full URL
+   * @param path relative path (must start with /)
+   * @return absolute URL
    */
   protected String url(String path) {
-    String normalized = path.startsWith("/") ? path : "/" + path;
-    return baseUrl() + normalized;
+    return baseUrl() + (path.startsWith("/") ? path : "/" + path);
   }
 }
