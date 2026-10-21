@@ -3,9 +3,14 @@ package io.github.edmaputra.edidp.ui;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.edmaputra.edidp.ui.controller.AdminDashboardController;
+import io.github.edmaputra.edidp.ui.security.UiSecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
+import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
 /**
  * Tests verifying conditional auto-configuration for the Admin Console UI add-on.
@@ -56,9 +61,9 @@ class UiAutoConfigurationTests {
   void uiSecurityConfig_createsSecurityFilterChain_withTrailingSlashAndWithout() {
     new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(
-            org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration.class,
-            org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration.class,
-            io.github.edmaputra.edidp.ui.security.UiSecurityConfig.class
+            SecurityAutoConfiguration.class,
+            ServletWebSecurityAutoConfiguration.class,
+            UiSecurityConfig.class
         ))
         .withUserConfiguration(TestSecurityConfig.class)
         .withBean(UiProperties.class, () -> new UiProperties(true, "/admin"))
@@ -69,9 +74,9 @@ class UiAutoConfigurationTests {
 
     new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(
-            org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration.class,
-            org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration.class,
-            io.github.edmaputra.edidp.ui.security.UiSecurityConfig.class
+            SecurityAutoConfiguration.class,
+            ServletWebSecurityAutoConfiguration.class,
+            UiSecurityConfig.class
         ))
         .withUserConfiguration(TestSecurityConfig.class)
         .withBean(UiProperties.class, () -> new UiProperties(true, "/admin/"))
@@ -87,7 +92,7 @@ class UiAutoConfigurationTests {
     assertThat(app).isNotNull();
   }
 
-  @org.springframework.context.annotation.Configuration
-  @org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
+  @Configuration
+  @EnableWebSecurity
   static class TestSecurityConfig {}
 }

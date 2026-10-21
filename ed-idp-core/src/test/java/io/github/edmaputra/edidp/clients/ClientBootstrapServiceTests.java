@@ -14,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
@@ -60,7 +61,7 @@ class ClientBootstrapServiceTests {
     RegisteredClient existingClient = RegisteredClient.withId("existing-id")
         .clientId("demo-client")
         .clientSecret("encoded-demo-secret")
-        .authorizationGrantType(org.springframework.security.oauth2.core.AuthorizationGrantType.CLIENT_CREDENTIALS)
+        .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
         .build();
 
     when(registeredClientRepository.findByClientId("demo-client")).thenReturn(existingClient);

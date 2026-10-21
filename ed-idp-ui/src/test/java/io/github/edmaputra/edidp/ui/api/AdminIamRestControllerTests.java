@@ -16,6 +16,8 @@ import io.github.edmaputra.edidp.ui.service.AdminClientService;
 import io.github.edmaputra.edidp.ui.service.AdminRbacService;
 import io.github.edmaputra.edidp.ui.service.AdminTenantService;
 import io.github.edmaputra.edidp.ui.service.AdminUserService;
+import io.github.edmaputra.iam.application.model.MfaStatusResponse;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -369,6 +371,25 @@ class AdminIamRestControllerTests {
         .andExpect(jsonPath("$.message").value("Group updated successfully"));
 
     verify(adminRbacService).updateGroup(any(AdminRbacService.UpdateGroupCommand.class));
+  }
+
+  @Test
+  void getUserMfaStatus_returnsOk() throws Exception {
+    when(adminUserService.getMfaStatus("alice")).thenReturn(new MfaStatusResponse(true, Instant.now()));
+
+    mockMvc.perform(get("/admin/api/users/alice/mfa/status"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.enabled").value(true));
+  }
+
+  @Test
+  void resetUserMfa_returnsOk() throws Exception {
+    mockMvc.perform(post("/admin/api/users/alice/mfa/reset"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("MFA reset successfully"))
+        .andExpect(jsonPath("$.username").value("alice"));
+
+    verify(adminUserService).resetMfa("alice");
   }
 
   @Test

@@ -1,7 +1,9 @@
 package io.github.edmaputra.edidp.consent;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsent;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
 import org.springframework.stereotype.Component;
@@ -26,7 +28,7 @@ public class ConsentStore {
 
     Set<String> scopes = consent.getAuthorities().stream()
         .map(authority -> authority.getAuthority())
-        .collect(java.util.stream.Collectors.toSet());
+        .collect(Collectors.toSet());
 
     return scopes;
   }
@@ -49,7 +51,7 @@ public class ConsentStore {
         principalName);
 
     for (String scope : authorizedScopes) {
-      builder.authority(new org.springframework.security.core.authority.SimpleGrantedAuthority("SCOPE_" + scope));
+      builder.authority(new SimpleGrantedAuthority("SCOPE_" + scope));
     }
 
     consentService.save(builder.build());
