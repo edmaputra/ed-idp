@@ -158,6 +158,7 @@ flowchart LR
 
 - [ ] **Immutable Consent & Audit Ledger**: Tamper-resistant audit trails for compliance with GDPR, SOC 2, and HIPAA requirements.
 - [ ] **GDPR Privacy Tooling**: Automated endpoints for user data export and "Right to be Forgotten" account purging.
-- [ ] **Interactive Admin Web Console**: Dedicated management UI for tenant configurations, client management, user directories, and active session monitoring.
+- [x] **Interactive Admin Web Console**: Dedicated management UI for tenant configurations, client management, user directories, and active session monitoring (`ed-idp-ui`).
+- [x] **End-to-End Browser & Protocol Automation Suite**: Automated UI and OAuth 2.1 protocol test coverage using Selenide (Selenium 4) and Maven Failsafe (`ed-idp-e2e`).
 - [ ] **Developer Portal & OpenAPI Explorer**: Interactive documentation explorer, live API sandboxes, and Postman collections.
 - [x] **Automated CI/CD Pipeline**: GitHub Actions workflows for continuous integration, multi-version Java testing, and Spring Modulith verification.

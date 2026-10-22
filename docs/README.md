@@ -21,7 +21,8 @@ docs/
 │   ├── 03-spa-pkce-login.md
 │   ├── 04-user-profiles-and-dynamic-claims.md
 │   ├── 05-resource-server-token-validation.md
-│   └── 06-database-and-production-setup.md
+│   ├── 06-database-and-production-setup.md
+│   └── 07-end-to-end-testing.md
 │
 ├── features/                      # Deep-dive feature specifications & API contracts
 │   ├── 01-oauth2-authorization-server.md
@@ -74,6 +75,7 @@ docs/
 | Provision users & dynamic claims | [how-to/04-user-profiles-and-dynamic-claims.md](how-to/04-user-profiles-and-dynamic-claims.md) | Identity Admins |
 | Validate / revoke tokens in Resource Servers | [how-to/05-resource-server-token-validation.md](how-to/05-resource-server-token-validation.md) | Backend / Gateway Engineers |
 | Deploy with PostgreSQL & secure Ingress | [how-to/06-database-and-production-setup.md](how-to/06-database-and-production-setup.md) | DevOps / SREs |
+| Run & write Selenide E2E browser tests | [how-to/07-end-to-end-testing.md](how-to/07-end-to-end-testing.md) | QA / Software Engineers |
 
 ---
 
