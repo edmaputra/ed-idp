@@ -121,7 +121,7 @@ docs/
 
 ```bash
 ./mvnw clean package          # Build & package
-./mvnw spring-boot:run        # Run locally (port 9000)
+./run-local.sh                # Run both IdP (port 9000) & Account Portal (port 9001) concurrently
 ./mvnw test                   # Run all tests
 ```
 
