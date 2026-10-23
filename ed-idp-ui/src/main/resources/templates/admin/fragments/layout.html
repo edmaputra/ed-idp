@@ -47,7 +47,6 @@
       </div>
     </a>
   </div>
-
   <div class="sidebar-body">
     <div class="sidebar-label">Navigation</div>
     <ul class="sidebar-nav">
@@ -86,6 +85,16 @@
         </a>
       </li>
     </ul>
+
+    <div class="sidebar-label mt-3">Account &amp; Security</div>
+    <ul class="sidebar-nav">
+      <li>
+        <a th:href="@{${basePath} + '/profile'}" class="nav-link" th:classappend="${activeMenu == 'profile'} ? ' active' : ''">
+          <i class="bi bi-person-circle"></i>
+          <span>My Profile</span>
+        </a>
+      </li>
+    </ul>
   </div>
 
   <div class="sidebar-footer">
@@ -116,6 +125,12 @@
   </div>
 
   <div class="d-flex align-items-center gap-2">
+    <!-- User Profile Link -->
+    <a th:href="@{${basePath} + '/profile'}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 d-flex align-items-center gap-1" title="My Profile &amp; Credentials">
+      <i class="bi bi-person-fill"></i>
+      <span class="small d-none d-sm-inline">Profile</span>
+    </a>
+
     <!-- Dark/Light Theme Switcher -->
     <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 d-flex align-items-center gap-2"
             id="theme-toggle-btn"

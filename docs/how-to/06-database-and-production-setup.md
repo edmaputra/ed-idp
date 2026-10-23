@@ -68,19 +68,33 @@ app.token.client-credentials-allowed-scopes=read,write,introspection,revocation
 
 In production, the Authorization Server typically sits behind an Ingress Controller, API Gateway, or Reverse Proxy (NGINX, Envoy, Traefik, AWS ALB) that terminates TLS.
 
-### 1. Canonical Issuer URI
-Ensure the public HTTPS URL is configured as the base issuer:
+### 1. Canonical Issuer URI & Portal Endpoints
+Ensure the public HTTPS URLs are configured as the base issuer and client endpoints (via environment variables or properties):
 ```properties
 app.issuer-uri=https://auth.example.com
+app.client.account-portal.base-url=https://account.example.com
+```
+
+In the Account Portal client application (`ed-idp-account-portal`):
+```properties
+edidp.auth-server-url=https://auth.example.com
 ```
 
 ### 2. Forwarded Headers
-Ensure Spring Security honors TLS termination from the reverse proxy:
+Ensure Spring Security honors TLS termination and host forwarding from the reverse proxy (e.g. Nginx, AWS ALB, Traefik, Cloudflare):
 ```properties
 server.forward-headers-strategy=framework
 ```
+When `server.forward-headers-strategy=framework` is enabled, Spring Boot registers standard `ForwardedHeaderFilter` processing `X-Forwarded-Proto`, `X-Forwarded-Host`, `X-Forwarded-Port`, and `X-Forwarded-Prefix`. This ensures OIDC discovery documents, redirect URLs, and session cookies automatically adapt to the HTTPS domain.
 
-### 3. Securing Header-Based Multi-Tenancy
+### 3. Automatic Client Redirect URI Provisioning
+On startup, `ClientBootstrapService` registers default client applications (`demo-client`, `pkce-public-client`, `ed-idp-account-portal`). When `APP_ISSUER_URI` or `ACCOUNT_PORTAL_BASE_URL` are set, the authorization server automatically registers redirect and post-logout URIs for those production URLs, while continuing to preserve local development fallbacks:
+- **`ed-idp-account-portal` redirect URI**: `${ACCOUNT_PORTAL_BASE_URL}/login/oauth2/code/ed-idp-account-portal`
+- **`ed-idp-account-portal` post-logout URI**: `${ACCOUNT_PORTAL_BASE_URL}/logged-out`
+- **`demo-client` redirect URI**: `${APP_ISSUER_URI}/login/oauth2/code/demo-client`
+- **`pkce-public-client` redirect URI**: `${APP_ISSUER_URI}/login/oauth2/code/pkce-public-client`
+
+### 4. Securing Header-Based Multi-Tenancy
 If utilizing `X-Tenant-ID` for internal routing, prevent external clients from spoofing tenant identities:
 1. **At the Gateway**: Strip any `X-Tenant-ID` header arriving from untrusted public clients.
 2. **In Application Config**: Enforce trusted reverse proxy sources:
@@ -89,11 +103,31 @@ If utilizing `X-Tenant-ID` for internal routing, prevent external clients from s
    tenant.resolution.header-trusted-sources=10.0.0.1,10.0.0.2,127.0.0.1
    ```
 
-### 4. Enforcing Strict Tenancy
+### 5. Enforcing Strict Tenancy
 Reject any request that fails to supply a valid tenant identifier:
 ```properties
 tenant.resolution.require-explicit-tenant=true
 ```
+
+---
+
+## 4. Production Environment Variables Reference
+
+Both `ed-idp` and `ed-idp-account-portal` support containerized, zero-configuration override via environment variables:
+
+| Environment Variable | Target Property | Default | Purpose |
+|---|---|---|---|
+| `PORT` | `server.port` | `9000` (core) / `9001` (portal) | Container HTTP listener port |
+| `FORWARD_HEADERS_STRATEGY` | `server.forward-headers-strategy` | `framework` | Enable `X-Forwarded-*` processing behind ingress |
+| `APP_ISSUER_URI` | `app.issuer-uri` | `http://localhost:9000` | Canonical authorization server public HTTPS domain |
+| `ACCOUNT_PORTAL_BASE_URL` | `app.client.account-portal.base-url` | `http://localhost:9001` | Canonical account portal public HTTPS domain |
+| `EDIDP_AUTH_SERVER_URL` | `edidp.auth-server-url` | `http://localhost:9000` | Authorization server location used by Account Portal |
+| `EDIDP_CLIENT_ID` | `spring.security.oauth2.client.registration.edidp.client-id` | `ed-idp-account-portal` | OAuth 2.1 client ID for portal |
+| `SPRING_DATASOURCE_URL` | `spring.datasource.url` | `jdbc:h2:mem:authdb...` | Production PostgreSQL/MySQL JDBC connection URL |
+| `SPRING_DATASOURCE_USERNAME` | `spring.datasource.username` | `sa` | Production database user |
+| `SPRING_DATASOURCE_PASSWORD` | `spring.datasource.password` | `""` | Production database password |
+| `IAM_JWT_SECRET` | `iam.jwt.secret` | *(internal dev secret)* | Base64 HMAC secret for credentials encryption at rest |
+| `EDIDP_SEEDING_ENABLED` | `edidp.seeding.enabled` | `true` | Seed default clients and demo users on startup |
 
 ---
 

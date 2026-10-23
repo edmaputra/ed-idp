@@ -76,6 +76,25 @@ class ResolveTenantServiceTests {
     assertThat(result.rewrittenPath()).contains("/oauth2/revoke");
   }
 
+  @Test
+  void userSelfServiceEndpointPathIsRewritten() {
+    ResolveTenantService useCase = new ResolveTenantService(defaultPolicy(false));
+
+    TenantResolutionResult resultMe = useCase.resolve(
+        "/t/acme/api/v1/users/me",
+        null,
+        "127.0.0.1");
+    assertThat(resultMe.tenantId()).contains("acme");
+    assertThat(resultMe.rewrittenPath()).contains("/api/v1/users/me");
+
+    TenantResolutionResult resultPassword = useCase.resolve(
+        "/t/acme/api/v1/users/me/password",
+        null,
+        "127.0.0.1");
+    assertThat(resultPassword.tenantId()).contains("acme");
+    assertThat(resultPassword.rewrittenPath()).contains("/api/v1/users/me/password");
+  }
+
   private TenantResolutionPolicy defaultPolicy(boolean requireExplicitTenant) {
     return new TenantResolutionPolicy(true, true, requireExplicitTenant, false, Set.of("127.0.0.1"));
   }
