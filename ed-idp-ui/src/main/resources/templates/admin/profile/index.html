@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/fragments/layout :: head('My Profile')}"></head>
+<body>
+
+<div class="layout-container">
+  <aside th:replace="~{admin/fragments/layout :: sidebar('profile')}"></aside>
+
+  <div class="main-content">
+    <header th:replace="~{admin/fragments/layout :: topbar('User Profile &amp; Credentials')}"></header>
+
+    <main class="page-body">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.5rem; align-items: start;">
+
+        <!-- Left Column: User Profile Information -->
+        <div id="profile-card" th:fragment="profileCard" class="card" style="margin-bottom: 0;">
+          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+            <div style="width: 54px; height: 54px; border-radius: 50%; background: #e0f2fe; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.75rem;">
+              👤
+            </div>
+            <div>
+              <h3 style="font-size: 1.2rem; font-weight: 600;" th:text="${profile.fullName != '' ? profile.fullName : profile.username}">User Full Name</h3>
+              <p style="color: var(--text-muted); font-size: 0.875rem;" th:text="${profile.email}">user@example.com</p>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+            <div>
+              <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Tenant</span>
+              <div style="margin-top: 0.25rem;">
+                <span class="badge" th:text="${profile.tenantId}">demo</span>
+              </div>
+            </div>
+
+            <div>
+              <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Assigned Roles</span>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.25rem;">
+                <span th:if="${#lists.isEmpty(profile.roles)}" style="font-size: 0.85rem; color: var(--text-muted);">None</span>
+                <span th:each="role : ${profile.roles}" class="badge badge-success" th:text="${role}">ROLE_USER</span>
+              </div>
+            </div>
+
+            <div>
+              <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Groups</span>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.25rem;">
+                <span th:if="${#lists.isEmpty(profile.groups)}" style="font-size: 0.85rem; color: var(--text-muted);">None</span>
+                <span th:each="group : ${profile.groups}" class="badge" style="background-color: #f3e8ff; color: #7e22ce;" th:text="${group}">Engineering</span>
+              </div>
+            </div>
+          </div>
+
+          <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+            Edit Profile Details
+          </h4>
+
+          <form id="profile-update-form"
+                th:attr="hx-post=@{${basePath} + '/profile/update'}"
+                hx-target="#profile-card"
+                hx-swap="outerHTML"
+                hx-on::after-request="if(event.detail.successful) { showToast('Profile details updated successfully', 'success'); }"
+                style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+            <div>
+              <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Full Name</label>
+              <input type="text" name="fullName" th:value="${profile.fullName}" required
+                     style="width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Department</label>
+              <input type="text" name="department" th:value="${profile.department}" placeholder="e.g. Engineering, Sales"
+                     style="width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text-muted);">Username / Email (Immutable)</label>
+              <input type="text" th:value="${profile.email}" disabled
+                     style="width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; background-color: #f1f5f9; color: var(--text-muted);">
+            </div>
+
+            <div style="margin-top: 0.5rem;">
+              <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.25rem;">
+                <span>💾</span> Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Right Column: Credential Maintenance & Password Change -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <!-- Password Maintenance Card -->
+          <div class="card" style="margin-bottom: 0;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+              <span style="font-size: 1.5rem;">🔑</span>
+              <div>
+                <h3 style="font-size: 1.1rem; font-weight: 600;">Maintain Credentials</h3>
+                <p style="color: var(--text-muted); font-size: 0.875rem;">Update your account password regularly to protect your identity.</p>
+              </div>
+            </div>
+
+            <form id="change-password-form"
+                  th:attr="hx-post=@{${basePath} + '/profile/change-password'}"
+                  hx-swap="none"
+                  hx-on::after-request="if(event.detail.successful) { this.reset(); showToast('Password changed successfully!', 'success'); }"
+                  style="display: flex; flex-direction: column; gap: 1rem;">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+              <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Current Password</label>
+                <input type="password" name="currentPassword" required placeholder="Enter your current password"
+                       autocomplete="current-password"
+                       style="width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">New Password</label>
+                <input type="password" name="newPassword" required placeholder="At least 8 characters with 1 digit"
+                       autocomplete="new-password"
+                       style="width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Confirm New Password</label>
+                <input type="password" name="confirmPassword" required placeholder="Repeat new password"
+                       autocomplete="new-password"
+                       style="width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
+              </div>
+
+              <div style="background-color: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; font-size: 0.8rem; color: var(--text-muted);">
+                <div style="font-weight: 600; margin-bottom: 0.25rem; color: var(--text-main);">Password Policy:</div>
+                <ul style="padding-left: 1.25rem; margin: 0;">
+                  <li>Minimum 8 characters length</li>
+                  <li>Must contain at least 1 digit (0-9)</li>
+                  <li>Cannot match your existing password</li>
+                </ul>
+              </div>
+
+              <div style="margin-top: 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.25rem;">
+                  <span>🔒</span> Change Password
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- MFA & Future Security Capabilities Note -->
+          <div class="card" style="margin-bottom: 0; background-color: #f8fafc; border-style: dashed;">
+            <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+              <span style="font-size: 1.25rem;">🛡️</span>
+              <div>
+                <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem;">Multi-Factor Authentication (MFA)</h4>
+                <p style="color: var(--text-muted); font-size: 0.825rem; line-height: 1.4;">
+                  TOTP authenticator app enrollment and WebAuthn security keys are being prepared for Phase 2 of the self-service lifecycle.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<div th:replace="~{admin/fragments/layout :: toastContainer}"></div>
+<script th:replace="~{admin/fragments/layout :: toastScript}"></script>
+
+</body>
+</html>
