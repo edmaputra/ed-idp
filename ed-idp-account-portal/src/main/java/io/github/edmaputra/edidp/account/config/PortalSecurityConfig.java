@@ -1,5 +1,8 @@
 package io.github.edmaputra.edidp.account.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,8 +25,18 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class PortalSecurityConfig {
 
+  private static final Logger log = LoggerFactory.getLogger(PortalSecurityConfig.class);
+
   @Bean
-  public SecurityFilterChain portalSecurityFilterChain(HttpSecurity http) throws Exception {
+  public PortalOidcLogoutSuccessHandler portalOidcLogoutSuccessHandler(
+      @Value("${edidp.auth-server-url:http://localhost:9000}") String authServerUrl) {
+    return new PortalOidcLogoutSuccessHandler(authServerUrl);
+  }
+
+  @Bean
+  public SecurityFilterChain portalSecurityFilterChain(
+      HttpSecurity http,
+      PortalOidcLogoutSuccessHandler logoutSuccessHandler) throws Exception {
     http
         .authorizeHttpRequests(authorize -> authorize
             .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/logged-out", "/error").permitAll()
@@ -31,12 +44,16 @@ public class PortalSecurityConfig {
         )
         .oauth2Login(oauth2 -> oauth2
             .defaultSuccessUrl("/account", true)
+            .failureHandler((request, response, exception) -> {
+              log.error("OAuth2 Login Failed: {} - message: {}", exception.getClass().getName(), exception.getMessage(), exception);
+              response.sendRedirect("/login?error");
+            })
         )
         .logout(logout -> logout
-            .logoutSuccessUrl("/logged-out")
+            .logoutSuccessHandler(logoutSuccessHandler)
             .invalidateHttpSession(true)
             .clearAuthentication(true)
-            .deleteCookies("JSESSIONID")
+            .deleteCookies("ACCOUNT_PORTAL_SESSIONID", "JSESSIONID")
         );
 
     return http.build();

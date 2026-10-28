@@ -98,7 +98,12 @@ class ClientBootstrapServiceTests {
 
     RegisteredClient portalClient = savedClients.get(2);
     assertThat(portalClient.getRedirectUris())
-        .contains("https://account.example.com/login/oauth2/code/ed-idp-account-portal", "http://127.0.0.1:9001/login/oauth2/code/ed-idp-account-portal");
+        .contains(
+            "https://account.example.com/login/oauth2/code/ed-idp-account-portal",
+            "https://account.example.com/login/oauth2/code/edidp",
+            "http://127.0.0.1:9001/login/oauth2/code/ed-idp-account-portal",
+            "http://127.0.0.1:9001/login/oauth2/code/edidp",
+            "http://localhost:9001/login/oauth2/code/edidp");
     assertThat(portalClient.getPostLogoutRedirectUris())
         .contains("https://account.example.com/logged-out", "http://127.0.0.1:9001/logged-out");
   }

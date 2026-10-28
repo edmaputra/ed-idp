@@ -101,7 +101,8 @@ echo -e "  [2] ${GREEN}User Account Portal Client${NC}    -> http://localhost:90
 echo -e ""
 echo -e "${YELLOW}Commands: Type 'q', 'quit', 'stop', or press [Ctrl+C] to exit.${NC}"
 echo -e "${CYAN}===================================================================${NC}"
-echo ""
+echo -e "${YELLOW}Building and installing project modules...${NC}"
+./mvnw install -DskipTests
 
 # Launch ed-idp-ui (Authorization Server + Admin Console) on port 9000
 ./mvnw spring-boot:run -pl ed-idp-ui > >(sed -e $'s/^/\033[0;34m[idp]   \033[0m /') 2>&1 &

@@ -57,4 +57,44 @@ class OidcLogoutEndpointTests extends AuthServerIntegrationTests {
     assertThat(afterLogoutAuthorizeResponse.headers().firstValue(HttpHeaders.LOCATION).orElseThrow())
       .contains("/login");
   }
+
+  @Test
+  void rpInitiatedLogoutViaGetRedirectsToRegisteredPostLogoutRedirectUriAndInvalidatesSession() throws Exception {
+    AuthorizationCodeFlowResult flow = authenticateDemoUserAndGetIdToken("openid read");
+
+    String postLogoutRedirectUri = "http://127.0.0.1:9000/logged-out";
+    String state = "logout-state-get";
+    String query = "id_token_hint=" + urlEncode(flow.idToken())
+        + "&post_logout_redirect_uri=" + urlEncode(postLogoutRedirectUri)
+        + "&state=" + urlEncode(state);
+
+    HttpResponse<String> logoutResponse = flow.client().send(
+      HttpRequest.newBuilder()
+        .uri(appUri("/connect/logout?" + query))
+        .GET()
+        .build(),
+      HttpResponse.BodyHandlers.ofString());
+
+    assertThat(logoutResponse.statusCode()).isEqualTo(HttpStatus.FOUND.value());
+
+    URI redirectedUri = URI.create(logoutResponse.headers().firstValue(HttpHeaders.LOCATION).orElseThrow());
+    assertThat(redirectedUri.getPath()).isEqualTo("/logged-out");
+    assertThat(redirectedUri.getQuery()).contains("state=" + state);
+
+    HttpResponse<String> afterLogoutAuthorizeResponse = flow.client().send(
+      HttpRequest.newBuilder()
+        .uri(appUri("/oauth2/authorize?response_type=code"
+            + "&client_id=demo-client"
+            + "&redirect_uri=" + URLEncoder.encode("http://127.0.0.1:9000/login/oauth2/code/demo-client",
+                StandardCharsets.UTF_8)
+            + "&scope=" + URLEncoder.encode("openid read", StandardCharsets.UTF_8)
+        + "&state=after-logout"))
+        .GET()
+        .build(),
+      HttpResponse.BodyHandlers.ofString());
+
+    assertThat(afterLogoutAuthorizeResponse.statusCode()).isEqualTo(HttpStatus.FOUND.value());
+    assertThat(afterLogoutAuthorizeResponse.headers().firstValue(HttpHeaders.LOCATION).orElseThrow())
+      .contains("/login");
+  }
 }

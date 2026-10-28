@@ -37,6 +37,8 @@ public class ClientBootstrapService {
   private static final String ACCOUNT_PORTAL_CLIENT_ID = "ed-idp-account-portal";
   private static final String ACCOUNT_PORTAL_REDIRECT_URI =
       "http://127.0.0.1:9000/login/oauth2/code/ed-idp-account-portal";
+  private static final String ACCOUNT_PORTAL_REDIRECT_URI_EDIDP =
+      "http://127.0.0.1:9000/login/oauth2/code/edidp";
   private static final String ACCOUNT_PORTAL_POST_LOGOUT_REDIRECT_URI =
       "http://127.0.0.1:9000/logged-out";
 
@@ -158,6 +160,7 @@ public class ClientBootstrapService {
 
   private RegisteredClient createAccountPortalClient() {
     String configuredRedirect = trimTrailingSlash(accountPortalBaseUrl) + "/login/oauth2/code/ed-idp-account-portal";
+    String configuredRedirectEdidp = trimTrailingSlash(accountPortalBaseUrl) + "/login/oauth2/code/edidp";
     String configuredPostLogout = trimTrailingSlash(accountPortalBaseUrl) + "/logged-out";
 
     return RegisteredClient.withId(UUID.randomUUID().toString())
@@ -167,9 +170,14 @@ public class ClientBootstrapService {
         .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
         .redirectUri("http://127.0.0.1:9001/login/oauth2/code/ed-idp-account-portal")
         .redirectUri("http://localhost:9001/login/oauth2/code/ed-idp-account-portal")
+        .redirectUri("http://127.0.0.1:9001/login/oauth2/code/edidp")
+        .redirectUri("http://localhost:9001/login/oauth2/code/edidp")
         .redirectUri(ACCOUNT_PORTAL_REDIRECT_URI)
+        .redirectUri(ACCOUNT_PORTAL_REDIRECT_URI_EDIDP)
         .redirectUri("http://localhost:9000/login/oauth2/code/ed-idp-account-portal")
+        .redirectUri("http://localhost:9000/login/oauth2/code/edidp")
         .redirectUri(configuredRedirect)
+        .redirectUri(configuredRedirectEdidp)
         .postLogoutRedirectUri("http://127.0.0.1:9001/logged-out")
         .postLogoutRedirectUri("http://localhost:9001/logged-out")
         .postLogoutRedirectUri(ACCOUNT_PORTAL_POST_LOGOUT_REDIRECT_URI)
