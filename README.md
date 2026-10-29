@@ -54,7 +54,20 @@ Default base URL:
 - Password: `admin-password`
 - Role: `ROLE_ADMIN`
 - Admin UI URL: `http://localhost:9000/admin/login`
-- Run with UI: `./mvnw spring-boot:run -pl ed-idp-ui`
+
+### Running Locally
+
+To launch both the Identity Provider (port 9000) and the User Account Portal (port 9001) simultaneously:
+```bash
+./run-local.sh
+```
+> [!TIP]
+> Type `q`, `stop`, or press `Ctrl+C` at any time to shut down both servers cleanly.
+
+Alternatively, run each service independently in separate terminals:
+- **Identity Provider (with Admin UI)**: `./mvnw spring-boot:run -pl ed-idp-ui` (port 9000)
+- **Identity Provider Core (headless)**: `./mvnw spring-boot:run -pl ed-idp-core` (port 9000)
+- **User Account Portal**: `./mvnw spring-boot:run -pl ed-idp-account-portal` (port 9001)
 
 ## Standards and Endpoints
 

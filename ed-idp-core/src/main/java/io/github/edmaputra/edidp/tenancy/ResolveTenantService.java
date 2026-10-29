@@ -15,7 +15,7 @@ public class ResolveTenantService {
   private static final Pattern TENANT_ID_PATTERN = Pattern.compile("^[A-Za-z0-9_-]+$");
   private static final Pattern TENANT_PATH_PATTERN = Pattern.compile("^/t/([A-Za-z0-9_-]+)(/.*)?$");
   private static final Pattern TENANT_ENDPOINT_PATTERN =
-      Pattern.compile("^/t/([A-Za-z0-9_-]+)/(oauth2/token|oauth2/authorize|oauth2/introspect|oauth2/revoke|userinfo|connect/logout|oauth2/authorize-consent)$");
+      Pattern.compile("^/t/([A-Za-z0-9_-]+)/(oauth2/token|oauth2/authorize|oauth2/introspect|oauth2/revoke|userinfo|connect/logout|oauth2/authorize-consent|api/v1/users/me(?:/.*)?)$");
 
   private final TenantResolutionPolicy policy;
 

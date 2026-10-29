@@ -51,10 +51,10 @@ public class TokensConfig {
       TenantIssuerService tenantIssuerService,
       @Value("${app.issuer-uri}") String baseIssuerUri) {
     return (context) -> {
-      TenantContext.getCurrentTenant().ifPresent(tenantId -> {
-        String tenantIssuer = tenantIssuerService.resolveTenantIssuer(baseIssuerUri, tenantId);
-        context.getClaims().claim("iss", tenantIssuer);
-      });
+      String currentTenant = TenantContext.getCurrentTenantOrDefault("demo");
+      String tenantIssuer = tenantIssuerService.resolveTenantIssuer(baseIssuerUri, currentTenant);
+      context.getClaims().claim("iss", tenantIssuer);
+      context.getClaims().claim("tenant_id", currentTenant);
 
       if (AuthorizationGrantType.CLIENT_CREDENTIALS.equals(context.getAuthorizationGrantType())) {
         if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
