@@ -1,6 +1,6 @@
 # Features and Roadmap: `ed-idp` (OAuth 2.1 & OIDC Authorization Server)
 
-`ed-idp` is a multi-tenant OAuth 2.1 and OpenID Connect 1.0 Identity Provider (IdP) and Authorization Server built on **Java 25**, **Spring Boot 4.1.1**, **Spring Authorization Server**, and **Spring Modulith**. It delivers strict per-tenant isolation, dynamic claim assembly, RFC-compliant token introspection and revocation, configurable token policies, and PKCE-enforced authorization flows.
+`ed-idp` is a multi-tenant OAuth 2.1 and OpenID Connect 1.0 Identity Provider (IdP) and Authorization Server built on **Java 25**, **Spring Boot 4.1.2**, **Spring Authorization Server**, and **Spring Modulith**. It delivers strict per-tenant isolation, dynamic claim assembly, RFC-compliant token introspection and revocation, configurable token policies, and PKCE-enforced authorization flows.
 
 > **Documentation Portal**: See [docs/README.md](README.md) for the complete table of contents and [Architecture & System Design](architecture/00-architecture.md) for deep technical design and sequence flows.
 
@@ -132,7 +132,7 @@ flowchart LR
 - [ ] **Multi-Factor Authentication (MFA / TOTP)**: RFC 6238 time-based one-time password verification (Google Authenticator, Microsoft Authenticator) with QR code enrollment and backup recovery codes.
 - [ ] **Automated Cryptographic Key Rotation**: Background scheduler rotating RSA/EC signing keys in JWKS with grace periods, publishing multi-key sets (`active`, `next`, `retired`).
 - [ ] **Brute-Force & Rate Limiting**: Bucket4j / token-bucket rate limiting on `/oauth2/token`, `/oauth2/authorize`, and login endpoints to mitigate credential stuffing.
-- [ ] **Structured Security Audit Logging**: SIEM-ready security audit events emitted on login attempts, token issuance, consent approvals, and revocations.
+- [x] **Structured Security Audit Logging**: SIEM-ready security audit events emitted on login attempts, token issuance, consent approvals, and revocations.
 - [ ] **Dynamic Client Registration (RFC 7591 / RFC 7592)**: RESTful management APIs for client lifecycle operations (registration, secret rotation, scope updates, deactivation).
 
 ### Phase 2: Enterprise Identity & Federation

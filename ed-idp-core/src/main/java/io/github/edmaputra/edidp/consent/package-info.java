@@ -1,4 +1,4 @@
 @org.springframework.modulith.ApplicationModule(
-    allowedDependencies = {}
+    allowedDependencies = { "audit" }
 )
 package io.github.edmaputra.edidp.consent;

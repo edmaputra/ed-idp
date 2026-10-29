@@ -7,7 +7,7 @@ Central navigation manifest and architectural constraints for AI agents working 
 ## 1. Stack & Versions
 
 - **Language**: Java 25
-- **Framework**: Spring Boot 4.1.1, Spring Authorization Server, Spring Modulith 2.1.0
+- **Framework**: Spring Boot 4.1.2, Spring Authorization Server, Spring Modulith 2.1.2
 - **Build Tool**: Maven Wrapper (`./mvnw`)
 - **Database / Persistence**: Spring Data JPA, Spring JDBC, Flyway Migrations, H2 (test/dev)
 - **Standards**: Inherited from `.agents/rules/java-kotlin/` and `.agents/rules/shared/`

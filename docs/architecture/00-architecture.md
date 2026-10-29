@@ -1,6 +1,6 @@
 # Architecture & System Design
 
-ed-idp is built as a **Vertical-Slice Modular Monolith** on **Java 25**, **Spring Boot 4.1.1**, **Spring Authorization Server**, and **Spring Modulith**. It functions as an enterprise-grade multi-tenant Identity Provider (IdP) and Authorization Server issuing OAuth 2.1 and OpenID Connect 1.0 tokens.
+ed-idp is built as a **Vertical-Slice Modular Monolith** on **Java 25**, **Spring Boot 4.1.2**, **Spring Authorization Server**, and **Spring Modulith**. It functions as an enterprise-grade multi-tenant Identity Provider (IdP) and Authorization Server issuing OAuth 2.1 and OpenID Connect 1.0 tokens.
 
 ---
 
@@ -9,7 +9,7 @@ ed-idp is built as a **Vertical-Slice Modular Monolith** on **Java 25**, **Sprin
 ed-idp is structured into three specialized Maven submodules within a multi-module reactor:
 
 1. **`ed-idp-core` (Headless Engine & Resource Server • Port 9000)**:
-   - Built as a **Vertical-Slice Modular Monolith** on **Java 25**, **Spring Boot 4.1.1**, **Spring Authorization Server**, and **Spring Modulith**.
+   - Built as a **Vertical-Slice Modular Monolith** on **Java 25**, **Spring Boot 4.1.2**, **Spring Authorization Server**, and **Spring Modulith**.
    - Functions as an enterprise-grade multi-tenant Identity Provider (IdP) and Authorization Server issuing OAuth 2.1 and OpenID Connect 1.0 tokens.
    - Hosts the `/api/v1/users/me` OAuth 2.1 Resource Server REST API for user self-service.
 2. **`ed-idp-ui` (Administrative Console Add-on • Port 9000)**:

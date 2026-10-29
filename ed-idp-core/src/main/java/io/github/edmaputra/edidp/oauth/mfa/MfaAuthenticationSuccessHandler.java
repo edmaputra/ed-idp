@@ -1,5 +1,10 @@
 package io.github.edmaputra.edidp.oauth.mfa;
 
+import io.github.edmaputra.edidp.audit.AuditEventPort;
+import io.github.edmaputra.edidp.audit.SecurityAuditAction;
+import io.github.edmaputra.edidp.audit.SecurityAuditEvent;
+import io.github.edmaputra.edidp.audit.SecurityAuditStatus;
+import io.github.edmaputra.edidp.tenancy.TenantContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -40,25 +45,40 @@ public class MfaAuthenticationSuccessHandler implements AuthenticationSuccessHan
   private final SavedRequestAwareAuthenticationSuccessHandler defaultHandler;
   private final String challengeUrl;
   private final String defaultTargetUrl;
+  private final AuditEventPort auditEventPort;
 
   public MfaAuthenticationSuccessHandler(
       MfaChallengeService mfaChallengeService,
       SecurityContextRepository securityContextRepository,
       String challengeUrl,
-      String defaultTargetUrl) {
+      String defaultTargetUrl,
+      AuditEventPort auditEventPort) {
     this.mfaChallengeService = Objects.requireNonNull(mfaChallengeService, "mfaChallengeService must not be null");
     this.securityContextRepository = (securityContextRepository != null)
         ? securityContextRepository
         : new HttpSessionSecurityContextRepository();
     this.challengeUrl = (challengeUrl != null && !challengeUrl.isBlank()) ? challengeUrl : "/login/mfa-challenge";
     this.defaultTargetUrl = (defaultTargetUrl != null && !defaultTargetUrl.isBlank()) ? defaultTargetUrl : "/";
+    this.auditEventPort = (auditEventPort != null) ? auditEventPort : AuditEventPort.noop();
     this.requestCache = new HttpSessionRequestCache();
     this.defaultHandler = new SavedRequestAwareAuthenticationSuccessHandler();
     this.defaultHandler.setDefaultTargetUrl(this.defaultTargetUrl);
   }
 
+  public MfaAuthenticationSuccessHandler(
+      MfaChallengeService mfaChallengeService,
+      SecurityContextRepository securityContextRepository,
+      String challengeUrl,
+      String defaultTargetUrl) {
+    this(mfaChallengeService, securityContextRepository, challengeUrl, defaultTargetUrl, AuditEventPort.noop());
+  }
+
+  public MfaAuthenticationSuccessHandler(MfaChallengeService mfaChallengeService, AuditEventPort auditEventPort) {
+    this(mfaChallengeService, new HttpSessionSecurityContextRepository(), "/login/mfa-challenge", "/", auditEventPort);
+  }
+
   public MfaAuthenticationSuccessHandler(MfaChallengeService mfaChallengeService) {
-    this(mfaChallengeService, new HttpSessionSecurityContextRepository(), "/login/mfa-challenge", "/");
+    this(mfaChallengeService, new HttpSessionSecurityContextRepository(), "/login/mfa-challenge", "/", AuditEventPort.noop());
   }
 
   @Override
@@ -89,6 +109,15 @@ public class MfaAuthenticationSuccessHandler implements AuthenticationSuccessHan
     session.setAttribute(MFA_TARGET_URL_SESSION_KEY, targetUrl);
     session.setAttribute(MFA_CHALLENGE_EXPIRES_AT_KEY, Instant.now().plusSeconds(MFA_CHALLENGE_TTL_SECONDS));
     session.setAttribute(MFA_ATTEMPT_COUNT_KEY, 0);
+
+    SecurityAuditEvent auditEvent = SecurityAuditEvent.builder()
+        .action(SecurityAuditAction.MFA_CHALLENGE)
+        .status(SecurityAuditStatus.SUCCESS)
+        .principal(authentication.getName())
+        .tenantId(TenantContext.getCurrentTenantOrDefault("demo"))
+        .detail("target_url", targetUrl)
+        .build();
+    auditEventPort.record(auditEvent);
 
     // Clear SecurityContext until second factor is satisfied
     SecurityContext emptyContext = SecurityContextHolder.createEmptyContext();

@@ -1,5 +1,6 @@
 package io.github.edmaputra.edidp.oauth;
 
+import io.github.edmaputra.edidp.audit.AuditEventPort;
 import io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandler;
 import io.github.edmaputra.edidp.oauth.mfa.MfaChallengeService;
 import io.github.edmaputra.edidp.tenancy.TenantContextFilter;
@@ -93,7 +94,8 @@ public class SecurityConfig {
   @Order(2)
   SecurityFilterChain authorizationServerSecurityFilterChain(
       HttpSecurity http,
-      Function<OidcUserInfoAuthenticationContext, OidcUserInfo> userInfoMapper)
+      Function<OidcUserInfoAuthenticationContext, OidcUserInfo> userInfoMapper,
+      AuditEventPort auditEventPort)
       throws Exception {
     OAuth2AuthorizationServerConfigurer authorizationServerConfigurer = new OAuth2AuthorizationServerConfigurer();
 
@@ -107,6 +109,13 @@ public class SecurityConfig {
             .oidc((oidc) ->
               oidc.userInfoEndpoint((userInfoEndpoint) ->
                 userInfoEndpoint.userInfoMapper(userInfoMapper)))
+            .tokenEndpoint((tokenEndpoint) ->
+              tokenEndpoint
+                .accessTokenResponseHandler(new AuditOAuth2AccessTokenResponseHandler(auditEventPort))
+                .errorResponseHandler(new AuditOAuth2ErrorAuthenticationFailureHandler(auditEventPort)))
+            .clientAuthentication((clientAuth) ->
+              clientAuth
+                .errorResponseHandler(new AuditOAuth2ErrorAuthenticationFailureHandler(auditEventPort)))
         )
         .authorizeHttpRequests((authorize) ->
             authorize.anyRequest().authenticated()
@@ -154,8 +163,10 @@ public class SecurityConfig {
   }
 
   @Bean
-  MfaAuthenticationSuccessHandler mfaAuthenticationSuccessHandler(MfaChallengeService mfaChallengeService) {
-    return new MfaAuthenticationSuccessHandler(mfaChallengeService);
+  MfaAuthenticationSuccessHandler mfaAuthenticationSuccessHandler(
+      MfaChallengeService mfaChallengeService,
+      AuditEventPort auditEventPort) {
+    return new MfaAuthenticationSuccessHandler(mfaChallengeService, auditEventPort);
   }
 
   @Bean
