@@ -156,7 +156,7 @@
                     <input type="checkbox" th:id="${'scope_' + scope}" name="scope" th:value="${scope}" checked>
                     <label th:for="${'scope_' + scope}" style="display: flex; align-items: center; margin: 0; flex: 1; cursor: pointer;">
                         <span class="scope-name" th:text="${scope}"></span>
-                        <span class="scope-description" th:text="${getScopeDescription(scope)}"></span>
+                        <span class="scope-description" th:text="${scope == 'openid' ? 'Identify you' : (scope == 'profile' ? 'Access your profile information' : (scope == 'email' ? 'Access your email address' : (scope == 'read' ? 'Read your data' : (scope == 'write' ? 'Modify your data' : (scope == 'introspection' ? 'Inspect tokens' : (scope == 'revocation' ? 'Revoke tokens' : 'Permission for ' + scope))))))}"></span>
                     </label>
                 </div>
             </div>

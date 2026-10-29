@@ -105,6 +105,7 @@ public class ClientBootstrapService {
 
     return RegisteredClient.withId(UUID.randomUUID().toString())
         .clientId(DEMO_CLIENT_ID)
+        .clientName("Demo Client")
         .clientSecret(passwordEncoder.encode(DEMO_CLIENT_SECRET))
         .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
         .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
@@ -138,6 +139,7 @@ public class ClientBootstrapService {
 
     return RegisteredClient.withId(UUID.randomUUID().toString())
         .clientId(PKCE_PUBLIC_CLIENT_ID)
+        .clientName("PKCE Public Client")
         .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
         .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
         .redirectUri(PKCE_PUBLIC_CLIENT_REDIRECT_URI)

@@ -32,6 +32,7 @@
 		<module>ed-idp-core</module>
 		<module>ed-idp-ui</module>
 		<module>ed-idp-account-portal</module>
+		<module>ed-idp-e2e</module>
 	</modules>
 
 	<properties>
@@ -39,6 +40,7 @@
 		<spring-modulith.version>2.1.0</spring-modulith.version>
 		<ed-iam.version>0.13.0</ed-iam.version>
 		<jacoco.version>0.8.15</jacoco.version>
+		<selenide.version>7.7.3</selenide.version>
 	</properties>
 
 	<dependencyManagement>
@@ -148,6 +150,23 @@
 							</configuration>
 						</execution>
 					</executions>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-failsafe-plugin</artifactId>
+					<executions>
+						<execution>
+							<goals>
+								<goal>integration-test</goal>
+								<goal>verify</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-report-plugin</artifactId>
+					<version>3.5.2</version>
 				</plugin>
 			</plugins>
 		</pluginManagement>

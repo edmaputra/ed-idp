@@ -13,7 +13,8 @@ docs/how-to/
 ├── 03-spa-pkce-login.md                   # Integrate a Single-Page App or Mobile App with PKCE
 ├── 04-user-profiles-and-dynamic-claims.md # Provision users and route dynamic claims to tokens
 ├── 05-resource-server-token-validation.md # Introspect and revoke tokens from downstream services
-└── 06-database-and-production-setup.md    # Deploy with PostgreSQL, Flyway, and reverse proxies
+├── 06-database-and-production-setup.md    # Deploy with PostgreSQL, Flyway, and reverse proxies
+└── 07-end-to-end-testing.md              # Execute and write browser automation tests with Selenide
 ```
 
 ### 1. Tenant & Organization Management
@@ -31,6 +32,9 @@ docs/how-to/
 
 ### 5. Deployment & Production Operations
 - **[06. Database & Production Setup](06-database-and-production-setup.md)**: How to switch from in-memory H2 to production PostgreSQL / MySQL, run Flyway migrations, tune token lifetimes, configure Actuator health probes, and secure ingress reverse proxies.
+
+### 6. Automated Verification & Testing
+- **[07. End-to-End Browser Testing](07-end-to-end-testing.md)**: How to execute and write Selenide (Selenium 4) browser automation tests, test interactive UI & consent flows, and inspect diagnostics.
 
 ---
 
