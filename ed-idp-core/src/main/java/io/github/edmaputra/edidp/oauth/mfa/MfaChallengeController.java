@@ -6,11 +6,6 @@ import static io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandle
 import static io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandler.MFA_PENDING_AUTH_SESSION_KEY;
 import static io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandler.MFA_TARGET_URL_SESSION_KEY;
 
-import io.github.edmaputra.edidp.audit.AuditEventPort;
-import io.github.edmaputra.edidp.audit.SecurityAuditAction;
-import io.github.edmaputra.edidp.audit.SecurityAuditEvent;
-import io.github.edmaputra.edidp.audit.SecurityAuditStatus;
-import io.github.edmaputra.edidp.tenancy.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -46,26 +41,19 @@ public class MfaChallengeController {
 
   private final MfaChallengeService mfaChallengeService;
   private final SecurityContextRepository securityContextRepository;
-  private final AuditEventPort auditEventPort;
 
   public MfaChallengeController(
       MfaChallengeService mfaChallengeService,
-      SecurityContextRepository securityContextRepository,
-      AuditEventPort auditEventPort) {
+      SecurityContextRepository securityContextRepository) {
     this.mfaChallengeService = Objects.requireNonNull(mfaChallengeService, "mfaChallengeService must not be null");
     this.securityContextRepository = (securityContextRepository != null)
         ? securityContextRepository
         : new HttpSessionSecurityContextRepository();
-    this.auditEventPort = (auditEventPort != null) ? auditEventPort : AuditEventPort.noop();
   }
 
   @Autowired
-  public MfaChallengeController(MfaChallengeService mfaChallengeService, AuditEventPort auditEventPort) {
-    this(mfaChallengeService, new HttpSessionSecurityContextRepository(), auditEventPort);
-  }
-
   public MfaChallengeController(MfaChallengeService mfaChallengeService) {
-    this(mfaChallengeService, new HttpSessionSecurityContextRepository(), AuditEventPort.noop());
+    this(mfaChallengeService, new HttpSessionSecurityContextRepository());
   }
 
   @GetMapping
@@ -117,18 +105,9 @@ public class MfaChallengeController {
       return "redirect:/login/mfa-challenge?error=locked";
     }
 
-    boolean verified = mfaChallengeService.verifyCode(pendingAuth.getName(), code);
+    currentAttempts++;
+    boolean verified = mfaChallengeService.verifyCode(pendingAuth.getName(), code, currentAttempts);
     if (!verified) {
-      currentAttempts++;
-      SecurityAuditEvent auditEvent = SecurityAuditEvent.builder()
-          .action(SecurityAuditAction.MFA_VERIFY_FAILURE)
-          .status(SecurityAuditStatus.FAILURE)
-          .principal(pendingAuth.getName())
-          .tenantId(TenantContext.getCurrentTenantOrDefault("demo"))
-          .detail("attempt", currentAttempts)
-          .build();
-      auditEventPort.record(auditEvent);
-
       if (currentAttempts >= MAX_MFA_ATTEMPTS) {
         clearMfaSession(session);
         return "redirect:/login/mfa-challenge?error=locked";
@@ -136,14 +115,6 @@ public class MfaChallengeController {
       session.setAttribute(MFA_ATTEMPT_COUNT_KEY, currentAttempts);
       return "redirect:/login/mfa-challenge?error=invalid_code";
     }
-
-    SecurityAuditEvent successAuditEvent = SecurityAuditEvent.builder()
-        .action(SecurityAuditAction.MFA_VERIFY_SUCCESS)
-        .status(SecurityAuditStatus.SUCCESS)
-        .principal(pendingAuth.getName())
-        .tenantId(TenantContext.getCurrentTenantOrDefault("demo"))
-        .build();
-    auditEventPort.record(successAuditEvent);
 
     // Enrich authenticated principal with MFA verification marker
     Set<GrantedAuthority> authorities = new HashSet<>(pendingAuth.getAuthorities());

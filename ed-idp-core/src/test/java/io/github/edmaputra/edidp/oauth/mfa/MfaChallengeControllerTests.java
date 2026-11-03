@@ -6,6 +6,8 @@ import static io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandle
 import static io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandler.MFA_PENDING_AUTH_SESSION_KEY;
 import static io.github.edmaputra.edidp.oauth.mfa.MfaAuthenticationSuccessHandler.MFA_TARGET_URL_SESSION_KEY;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -124,7 +126,7 @@ class MfaChallengeControllerTests {
     session.setAttribute(MFA_CHALLENGE_EXPIRES_AT_KEY, Instant.now().plusSeconds(300));
     session.setAttribute(MFA_ATTEMPT_COUNT_KEY, 0);
 
-    when(mfaChallengeService.verifyCode("bob@example.com", "invalid")).thenReturn(false);
+    when(mfaChallengeService.verifyCode(eq("bob@example.com"), eq("invalid"), anyInt())).thenReturn(false);
 
     String result = controller.verifyChallenge("invalid", request, response, session);
     assertThat(result).isEqualTo("redirect:/login/mfa-challenge?error=invalid_code");
@@ -141,7 +143,7 @@ class MfaChallengeControllerTests {
     session.setAttribute(MFA_CHALLENGE_EXPIRES_AT_KEY, Instant.now().plusSeconds(300));
     session.setAttribute(MFA_ATTEMPT_COUNT_KEY, MAX_MFA_ATTEMPTS - 1);
 
-    when(mfaChallengeService.verifyCode("bob@example.com", "invalid")).thenReturn(false);
+    when(mfaChallengeService.verifyCode(eq("bob@example.com"), eq("invalid"), anyInt())).thenReturn(false);
 
     String result = controller.verifyChallenge("invalid", request, response, session);
     assertThat(result).isEqualTo("redirect:/login/mfa-challenge?error=locked");
@@ -179,7 +181,7 @@ class MfaChallengeControllerTests {
     session.setAttribute(MFA_TARGET_URL_SESSION_KEY, "/oauth2/authorize?client_id=demo");
     session.setAttribute(MFA_CHALLENGE_EXPIRES_AT_KEY, Instant.now().plusSeconds(300));
 
-    when(mfaChallengeService.verifyCode("carol@example.com", "654321")).thenReturn(true);
+    when(mfaChallengeService.verifyCode(eq("carol@example.com"), eq("654321"), anyInt())).thenReturn(true);
 
     String result = controller.verifyChallenge("654321", request, response, session);
 
@@ -213,7 +215,7 @@ class MfaChallengeControllerTests {
     session.setAttribute(MFA_TARGET_URL_SESSION_KEY, untrustedUrl);
     session.setAttribute(MFA_CHALLENGE_EXPIRES_AT_KEY, Instant.now().plusSeconds(300));
 
-    when(mfaChallengeService.verifyCode("dave@example.com", "112233")).thenReturn(true);
+    when(mfaChallengeService.verifyCode(eq("dave@example.com"), eq("112233"), anyInt())).thenReturn(true);
 
     String result = controller.verifyChallenge("112233", request, response, session);
     assertThat(result).isEqualTo("redirect:/");
@@ -229,7 +231,7 @@ class MfaChallengeControllerTests {
     session.setAttribute(MFA_PENDING_AUTH_SESSION_KEY, pendingAuth);
     session.setAttribute(MFA_CHALLENGE_EXPIRES_AT_KEY, Instant.now().plusSeconds(300));
 
-    when(mfaChallengeService.verifyCode("dave@example.com", "112233")).thenReturn(true);
+    when(mfaChallengeService.verifyCode(eq("dave@example.com"), eq("112233"), anyInt())).thenReturn(true);
 
     String result = controller.verifyChallenge("112233", request, response, session);
     assertThat(result).isEqualTo("redirect:/");
