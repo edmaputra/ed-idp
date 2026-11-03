@@ -228,7 +228,7 @@ public class JdbcAdminUserService implements AdminUserService {
       UUID roleUuid = resolveRoleId(assignedRole);
       if (roleUuid != null) {
         jdbcTemplate.update("""
-            INSERT INTO iam_user_role_assignment (id, user_id, role_id, is_tenant_wide, created_at)
+            INSERT INTO iam_user_role_assignment (id, user_id, role_id, inherit_children, created_at)
             VALUES (?, ?, ?, true, ?)
             """,
             UUID.randomUUID(), userUuid, roleUuid, now
@@ -309,7 +309,7 @@ public class JdbcAdminUserService implements AdminUserService {
       UUID roleUuid = resolveRoleId(cleanRole);
       if (roleUuid != null) {
         jdbcTemplate.update("""
-            INSERT INTO iam_user_role_assignment (id, user_id, role_id, is_tenant_wide, created_at)
+            INSERT INTO iam_user_role_assignment (id, user_id, role_id, inherit_children, created_at)
             VALUES (?, ?, ?, true, ?)
             """,
             UUID.randomUUID(), userUuid, roleUuid, now

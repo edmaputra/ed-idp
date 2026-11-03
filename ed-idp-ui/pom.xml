@@ -90,6 +90,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<classifier>exec</classifier>
 					<mainClass>io.github.edmaputra.edidp.ui.UiApplication</mainClass>
 				</configuration>
 			</plugin>
