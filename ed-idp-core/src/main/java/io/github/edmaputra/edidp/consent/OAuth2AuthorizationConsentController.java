@@ -26,8 +26,8 @@ import org.springframework.web.util.UriComponentsBuilder;
  */
 @Controller
 @RequestMapping("/oauth2")
-@Slf4j
 @RequiredArgsConstructor
+@Slf4j
 public class OAuth2AuthorizationConsentController {
 
   private final AuthorizationConsentService authorizationConsentService;
@@ -117,6 +117,8 @@ public class OAuth2AuthorizationConsentController {
 
     if ("deny".equalsIgnoreCase(action)) {
       log.info("User {} denied consent for client {}", authentication.getName(), clientId);
+      authorizationConsentService.denyConsent(authentication.getName(), clientId, "user_denied");
+
       UriComponentsBuilder denyBuilder = UriComponentsBuilder.fromUriString(redirectUri)
           .queryParam("error", "access_denied")
           .queryParam("error_description", "The user denied the request");
@@ -146,6 +148,8 @@ public class OAuth2AuthorizationConsentController {
 
     if (approvedSet.isEmpty()) {
       log.info("User {} approved no scopes for client {}", principalName, clientId);
+      authorizationConsentService.denyConsent(principalName, clientId, "empty_scopes");
+
       UriComponentsBuilder denyBuilder = UriComponentsBuilder.fromUriString(redirectUri)
           .queryParam("error", "access_denied")
           .queryParam("error_description", "The user did not approve any scopes");
@@ -156,7 +160,7 @@ public class OAuth2AuthorizationConsentController {
     }
 
     CheckConsentCommand command = new CheckConsentCommand(principalName, registeredClientId, approvedSet);
-    authorizationConsentService.approveConsent(command);
+    authorizationConsentService.approveConsent(command, clientId);
 
     log.info(
         "User {} approved client {} for scopes: {}",

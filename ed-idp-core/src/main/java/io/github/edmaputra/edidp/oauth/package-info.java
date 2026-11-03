@@ -1,4 +1,4 @@
 @org.springframework.modulith.ApplicationModule(
-    allowedDependencies = { "tenancy", "shared" }
+    allowedDependencies = { "tenancy", "shared", "audit" }
 )
 package io.github.edmaputra.edidp.oauth;

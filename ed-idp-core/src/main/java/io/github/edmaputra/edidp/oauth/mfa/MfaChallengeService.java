@@ -1,5 +1,10 @@
 package io.github.edmaputra.edidp.oauth.mfa;
 
+import io.github.edmaputra.edidp.audit.AuditEventPort;
+import io.github.edmaputra.edidp.audit.SecurityAuditAction;
+import io.github.edmaputra.edidp.audit.SecurityAuditEvent;
+import io.github.edmaputra.edidp.audit.SecurityAuditStatus;
+import io.github.edmaputra.edidp.tenancy.TenantContext;
 import io.github.edmaputra.iam.domain.auth.mfa.TotpGenerator;
 import io.github.edmaputra.iam.domain.model.User;
 import io.github.edmaputra.iam.domain.model.UserMfa;
@@ -11,13 +16,14 @@ import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service orchestrating Multi-Factor Authentication challenges, checking enrollment requirements,
- * and verifying RFC 6238 TOTP codes and backup recovery codes.
+ * verifying RFC 6238 TOTP codes and backup recovery codes, and emitting security audit events.
  *
  * @author edmaputra
  * @since 0.0.1
@@ -31,14 +37,25 @@ public class MfaChallengeService {
   private final UserRepository userRepository;
   private final UserMfaRepository userMfaRepository;
   private final JdbcTemplate jdbcTemplate;
+  private final AuditEventPort auditEventPort;
+
+  @Autowired
+  public MfaChallengeService(
+      UserRepository userRepository,
+      UserMfaRepository userMfaRepository,
+      JdbcTemplate jdbcTemplate,
+      AuditEventPort auditEventPort) {
+    this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null");
+    this.userMfaRepository = Objects.requireNonNull(userMfaRepository, "userMfaRepository must not be null");
+    this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate, "jdbcTemplate must not be null");
+    this.auditEventPort = (auditEventPort != null) ? auditEventPort : AuditEventPort.noop();
+  }
 
   public MfaChallengeService(
       UserRepository userRepository,
       UserMfaRepository userMfaRepository,
       JdbcTemplate jdbcTemplate) {
-    this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null");
-    this.userMfaRepository = Objects.requireNonNull(userMfaRepository, "userMfaRepository must not be null");
-    this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate, "jdbcTemplate must not be null");
+    this(userRepository, userMfaRepository, jdbcTemplate, AuditEventPort.noop());
   }
 
   /**
@@ -58,6 +75,39 @@ public class MfaChallengeService {
   }
 
   /**
+   * Verifies a 6-digit TOTP code or single-use emergency backup recovery code, recording
+   * structured security audit logging events on success or failure.
+   *
+   * @param usernameOrEmail the user's username or email
+   * @param code the submitted verification code
+   * @param attempt the current attempt count
+   * @return true if verification succeeds
+   */
+  @Transactional
+  public boolean verifyCode(String usernameOrEmail, String code, int attempt) {
+    boolean verified = doVerifyCode(usernameOrEmail, code);
+    if (verified) {
+      SecurityAuditEvent auditEvent = SecurityAuditEvent.builder()
+          .action(SecurityAuditAction.MFA_VERIFY_SUCCESS)
+          .status(SecurityAuditStatus.SUCCESS)
+          .principal(usernameOrEmail)
+          .tenantId(TenantContext.getCurrentTenantOrDefault("demo"))
+          .build();
+      auditEventPort.record(auditEvent);
+    } else {
+      SecurityAuditEvent auditEvent = SecurityAuditEvent.builder()
+          .action(SecurityAuditAction.MFA_VERIFY_FAILURE)
+          .status(SecurityAuditStatus.FAILURE)
+          .principal(usernameOrEmail)
+          .tenantId(TenantContext.getCurrentTenantOrDefault("demo"))
+          .detail("attempt", attempt)
+          .build();
+      auditEventPort.record(auditEvent);
+    }
+    return verified;
+  }
+
+  /**
    * Verifies a 6-digit TOTP code or single-use emergency backup recovery code.
    *
    * @param usernameOrEmail the user's username or email
@@ -66,6 +116,10 @@ public class MfaChallengeService {
    */
   @Transactional
   public boolean verifyCode(String usernameOrEmail, String code) {
+    return verifyCode(usernameOrEmail, code, 1);
+  }
+
+  private boolean doVerifyCode(String usernameOrEmail, String code) {
     if (usernameOrEmail == null || usernameOrEmail.isBlank() || code == null || code.isBlank()) {
       return false;
     }

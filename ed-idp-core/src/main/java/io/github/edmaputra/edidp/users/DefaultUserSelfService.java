@@ -1,5 +1,9 @@
 package io.github.edmaputra.edidp.users;
 
+import io.github.edmaputra.edidp.audit.AuditEventPort;
+import io.github.edmaputra.edidp.audit.SecurityAuditAction;
+import io.github.edmaputra.edidp.audit.SecurityAuditEvent;
+import io.github.edmaputra.edidp.audit.SecurityAuditStatus;
 import io.github.edmaputra.iam.domain.security.PasswordValidator;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -8,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,14 +31,25 @@ public class DefaultUserSelfService implements UserSelfService {
   private final JdbcTemplate jdbcTemplate;
   private final PasswordEncoder passwordEncoder;
   private final PasswordValidator passwordValidator;
+  private final AuditEventPort auditEventPort;
+
+  @Autowired
+  public DefaultUserSelfService(
+      JdbcTemplate jdbcTemplate,
+      PasswordEncoder passwordEncoder,
+      PasswordValidator passwordValidator,
+      AuditEventPort auditEventPort) {
+    this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate, "jdbcTemplate must not be null");
+    this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder must not be null");
+    this.passwordValidator = Objects.requireNonNull(passwordValidator, "passwordValidator must not be null");
+    this.auditEventPort = (auditEventPort != null) ? auditEventPort : AuditEventPort.noop();
+  }
 
   public DefaultUserSelfService(
       JdbcTemplate jdbcTemplate,
       PasswordEncoder passwordEncoder,
       PasswordValidator passwordValidator) {
-    this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate, "jdbcTemplate must not be null");
-    this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder must not be null");
-    this.passwordValidator = Objects.requireNonNull(passwordValidator, "passwordValidator must not be null");
+    this(jdbcTemplate, passwordEncoder, passwordValidator, AuditEventPort.noop());
   }
 
   private static UUID toUuid(String val) {
@@ -197,15 +213,27 @@ public class DefaultUserSelfService implements UserSelfService {
       );
     }
 
+    SecurityAuditEvent auditEvent = SecurityAuditEvent.builder()
+        .action(SecurityAuditAction.USER_PROFILE_UPDATED)
+        .status(SecurityAuditStatus.SUCCESS)
+        .principal(subject)
+        .tenantId(cleanTenant)
+        .detail("fullName", request.fullName())
+        .detail("department", request.department())
+        .build();
+    auditEventPort.record(auditEvent);
+
     return getMyProfile(subject, cleanTenant);
   }
 
   @Override
   @Transactional
   public void changeMyPassword(String subject, String tenantId, ChangePasswordRequest request) {
+    String cleanTenant = (tenantId != null && !tenantId.isBlank()) ? tenantId : "demo";
     try {
       passwordValidator.validatePassword(request.newPassword(), subject);
     } catch (RuntimeException ex) {
+      recordPasswordFailure(subject, cleanTenant, ex.getMessage() != null ? ex.getMessage() : "Password validation failed");
       throw new IllegalArgumentException(ex.getMessage() != null ? ex.getMessage() : "Password does not meet policy requirements", ex);
     }
 
@@ -218,15 +246,18 @@ public class DefaultUserSelfService implements UserSelfService {
     );
 
     if (hashes.isEmpty()) {
+      recordPasswordFailure(subject, cleanTenant, "User not found");
       throw new IllegalArgumentException("User not found: " + subject);
     }
 
     String currentHash = hashes.get(0);
     if (currentHash == null || currentHash.isBlank()) {
+      recordPasswordFailure(subject, cleanTenant, "User has no current password set");
       throw new IllegalArgumentException("User has no current password set");
     }
 
     if (!passwordEncoder.matches(request.currentPassword(), currentHash)) {
+      recordPasswordFailure(subject, cleanTenant, "Current password is incorrect");
       throw new IllegalArgumentException("Current password is incorrect");
     }
 
@@ -240,5 +271,24 @@ public class DefaultUserSelfService implements UserSelfService {
         userUuid,
         subject
     );
+
+    SecurityAuditEvent successEvent = SecurityAuditEvent.builder()
+        .action(SecurityAuditAction.USER_PASSWORD_CHANGED)
+        .status(SecurityAuditStatus.SUCCESS)
+        .principal(subject)
+        .tenantId(cleanTenant)
+        .build();
+    auditEventPort.record(successEvent);
+  }
+
+  private void recordPasswordFailure(String subject, String tenantId, String error) {
+    SecurityAuditEvent auditEvent = SecurityAuditEvent.builder()
+        .action(SecurityAuditAction.USER_PASSWORD_CHANGED)
+        .status(SecurityAuditStatus.FAILURE)
+        .principal(subject)
+        .tenantId(tenantId)
+        .detail("error", error)
+        .build();
+    auditEventPort.record(auditEvent);
   }
 }

@@ -2,6 +2,7 @@ package io.github.edmaputra.edidp.consent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,7 +58,8 @@ class OAuth2AuthorizationConsentControllerTests {
     assertThat(view).contains("redirect:http://client.example.com/callback");
     assertThat(view).contains("error=access_denied");
     assertThat(view).contains("state=test-state");
-    verify(authorizationConsentService, never()).approveConsent(any());
+    verify(authorizationConsentService).denyConsent("demo-user", "demo-client", "user_denied");
+    verify(authorizationConsentService, never()).approveConsent(any(), any());
   }
 
   @Test
@@ -83,7 +85,7 @@ class OAuth2AuthorizationConsentControllerTests {
         authentication);
 
     ArgumentCaptor<CheckConsentCommand> captor = ArgumentCaptor.forClass(CheckConsentCommand.class);
-    verify(authorizationConsentService).approveConsent(captor.capture());
+    verify(authorizationConsentService).approveConsent(captor.capture(), eq("demo-client"));
 
     CheckConsentCommand captured = captor.getValue();
     assertThat(captured.principalName()).isEqualTo("demo-user");
@@ -119,7 +121,8 @@ class OAuth2AuthorizationConsentControllerTests {
 
     assertThat(view).contains("redirect:http://client.example.com/callback");
     assertThat(view).contains("error=access_denied");
-    verify(authorizationConsentService, never()).approveConsent(any());
+    verify(authorizationConsentService).denyConsent("demo-user", "demo-client", "empty_scopes");
+    verify(authorizationConsentService, never()).approveConsent(any(), any());
   }
 
   @Test
@@ -265,6 +268,6 @@ class OAuth2AuthorizationConsentControllerTests {
         authentication);
 
     assertThat(view).isEqualTo("consent-error");
-    verify(authorizationConsentService, never()).approveConsent(any());
+    verify(authorizationConsentService, never()).approveConsent(any(), any());
   }
 }

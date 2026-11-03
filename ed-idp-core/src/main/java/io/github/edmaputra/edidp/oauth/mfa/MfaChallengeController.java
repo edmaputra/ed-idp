@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -41,9 +42,18 @@ public class MfaChallengeController {
   private final MfaChallengeService mfaChallengeService;
   private final SecurityContextRepository securityContextRepository;
 
-  public MfaChallengeController(MfaChallengeService mfaChallengeService) {
+  public MfaChallengeController(
+      MfaChallengeService mfaChallengeService,
+      SecurityContextRepository securityContextRepository) {
     this.mfaChallengeService = Objects.requireNonNull(mfaChallengeService, "mfaChallengeService must not be null");
-    this.securityContextRepository = new HttpSessionSecurityContextRepository();
+    this.securityContextRepository = (securityContextRepository != null)
+        ? securityContextRepository
+        : new HttpSessionSecurityContextRepository();
+  }
+
+  @Autowired
+  public MfaChallengeController(MfaChallengeService mfaChallengeService) {
+    this(mfaChallengeService, new HttpSessionSecurityContextRepository());
   }
 
   @GetMapping
@@ -95,9 +105,9 @@ public class MfaChallengeController {
       return "redirect:/login/mfa-challenge?error=locked";
     }
 
-    boolean verified = mfaChallengeService.verifyCode(pendingAuth.getName(), code);
+    currentAttempts++;
+    boolean verified = mfaChallengeService.verifyCode(pendingAuth.getName(), code, currentAttempts);
     if (!verified) {
-      currentAttempts++;
       if (currentAttempts >= MAX_MFA_ATTEMPTS) {
         clearMfaSession(session);
         return "redirect:/login/mfa-challenge?error=locked";

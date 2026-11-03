@@ -9,6 +9,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.github.edmaputra.edidp.audit.AuditEventPort;
+import io.github.edmaputra.edidp.audit.SecurityAuditAction;
+import io.github.edmaputra.edidp.audit.SecurityAuditEvent;
+import io.github.edmaputra.edidp.audit.SecurityAuditStatus;
 import io.github.edmaputra.iam.domain.auth.mfa.TotpGenerator;
 import io.github.edmaputra.iam.domain.model.User;
 import io.github.edmaputra.iam.domain.model.UserId;
@@ -21,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -188,5 +193,55 @@ class MfaChallengeServiceTests {
 
     assertThat(service.verifyCode("grace@example.com", "000000")).isFalse();
     verify(userMfaRepository, never()).save(any());
+  }
+
+  @Test
+  void verifyCodeRecordsMfaVerifySuccessAuditEvent() {
+    AuditEventPort auditEventPort = mock(AuditEventPort.class);
+    MfaChallengeService auditedService =
+        new MfaChallengeService(userRepository, userMfaRepository, jdbcTemplate, auditEventPort);
+
+    User user = User.create("eve@example.com", "hash", "Eve", false);
+    String secret = TotpGenerator.generateSecret();
+    UserMfa mfa = UserMfa.create(user.getId(), secret, List.of());
+    mfa.activate();
+
+    when(userRepository.findByEmail("eve@example.com")).thenReturn(Optional.of(user));
+    when(userMfaRepository.findByUserId(user.getId())).thenReturn(Optional.of(mfa));
+
+    String validTotp = TotpGenerator.generateCurrentTotp(secret);
+    assertThat(auditedService.verifyCode("eve@example.com", validTotp, 1)).isTrue();
+
+    ArgumentCaptor<SecurityAuditEvent> captor = ArgumentCaptor.forClass(SecurityAuditEvent.class);
+    verify(auditEventPort).record(captor.capture());
+    SecurityAuditEvent event = captor.getValue();
+    assertThat(event.action()).isEqualTo(SecurityAuditAction.MFA_VERIFY_SUCCESS);
+    assertThat(event.status()).isEqualTo(SecurityAuditStatus.SUCCESS);
+    assertThat(event.principal()).isEqualTo("eve@example.com");
+  }
+
+  @Test
+  void verifyCodeRecordsMfaVerifyFailureAuditEventWithAttemptCount() {
+    AuditEventPort auditEventPort = mock(AuditEventPort.class);
+    MfaChallengeService auditedService =
+        new MfaChallengeService(userRepository, userMfaRepository, jdbcTemplate, auditEventPort);
+
+    User user = User.create("grace@example.com", "hash", "Grace", false);
+    String secret = TotpGenerator.generateSecret();
+    UserMfa mfa = UserMfa.create(user.getId(), secret, List.of());
+    mfa.activate();
+
+    when(userRepository.findByEmail("grace@example.com")).thenReturn(Optional.of(user));
+    when(userMfaRepository.findByUserId(user.getId())).thenReturn(Optional.of(mfa));
+
+    assertThat(auditedService.verifyCode("grace@example.com", "000000", 3)).isFalse();
+
+    ArgumentCaptor<SecurityAuditEvent> captor = ArgumentCaptor.forClass(SecurityAuditEvent.class);
+    verify(auditEventPort).record(captor.capture());
+    SecurityAuditEvent event = captor.getValue();
+    assertThat(event.action()).isEqualTo(SecurityAuditAction.MFA_VERIFY_FAILURE);
+    assertThat(event.status()).isEqualTo(SecurityAuditStatus.FAILURE);
+    assertThat(event.principal()).isEqualTo("grace@example.com");
+    assertThat(event.details().get("attempt")).isEqualTo(3);
   }
 }
