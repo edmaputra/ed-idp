@@ -38,7 +38,9 @@ docs/
 │   ├── 11-persistence-schema.md
 │   ├── 12-configuration.md
 │   ├── 13-user-self-service-resource-server.md
-│   └── 14-account-portal-client.md
+│   ├── 14-account-portal-client.md
+│   ├── 15-structured-security-audit-logging.md
+│   └── 16-self-service-mfa-enrollment.md
 │
 └── roadmap/                       # Product backlog & capability planning
     ├── README.md                  # Roadmap overview & phasing summary
@@ -97,8 +99,10 @@ docs/
 | 10 | Session & Logout | [features/10-session-logout.md](features/10-session-logout.md) | Form login, OIDC RP-initiated logout (`/connect/logout`), and post-logout landing |
 | 11 | Persistence & Schema | [features/11-persistence-schema.md](features/11-persistence-schema.md) | Spring Data JPA, Flyway migrations (`V0_0_1_001` through `007`), and RDBMS setup |
 | 12 | Configuration Reference | [features/12-configuration.md](features/12-configuration.md) | Complete reference of application, security, token, and tenancy properties |
-| 13 | User Self-Service Resource Server | [features/13-user-self-service-resource-server.md](features/13-user-self-service-resource-server.md) | Multi-tenant OAuth 2.1 Resource Server REST API (`/api/v1/users/me`) and Web UI for profiles and password maintenance |
+| 13 | User Self-Service Resource Server | [features/13-user-self-service-resource-server.md](features/13-user-self-service-resource-server.md) | Multi-tenant OAuth 2.1 Resource Server REST API (`/api/v1/users/me`) and Web UI for profiles, credentials, and MFA status |
 | 14 | Standalone Account Portal | [features/14-account-portal-client.md](features/14-account-portal-client.md) | Standalone OAuth 2.1 & OIDC Client application (`ed-idp-account-portal`, port 9001) consuming the Resource Server REST API |
+| 15 | Structured Security Audit Logging | [features/15-structured-security-audit-logging.md](features/15-structured-security-audit-logging.md) | Structured JSON security audit logging for authentication, token issuance, consent, MFA, and profile changes |
+| 16 | Self-Service MFA Enrollment | [features/16-self-service-mfa-enrollment.md](features/16-self-service-mfa-enrollment.md) | Interactive TOTP MFA enrollment wizard with offline QR codes, backup recovery codes, and verification in Account Portal |
 
 ---
 

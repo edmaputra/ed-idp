@@ -17,6 +17,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import io.github.edmaputra.edidp.account.client.AccountPortalApiClient;
 import io.github.edmaputra.edidp.account.dto.ChangePasswordDto;
+import io.github.edmaputra.edidp.account.dto.MfaSetupDto;
+import io.github.edmaputra.edidp.account.dto.MfaStatusDto;
 import io.github.edmaputra.edidp.account.dto.UpdateProfileDto;
 import io.github.edmaputra.edidp.account.dto.UserProfileDto;
 import io.github.edmaputra.edidp.account.exception.AccountPortalApiException;
@@ -145,14 +147,18 @@ class AccountPortalControllerTests {
     );
 
     when(apiClient.getProfile("mock-access-token", "demo")).thenReturn(profile);
+    when(apiClient.getMfaStatus("mock-access-token", "demo")).thenReturn(new MfaStatusDto(false, null));
 
     mockMvc.perform(get("/account"))
         .andExpect(status().isOk())
         .andExpect(view().name("account/index"))
         .andExpect(model().attribute("profile", profile))
+        .andExpect(model().attribute("mfaStatus", new MfaStatusDto(false, null)))
         .andExpect(model().attribute("tenant", "demo"))
         .andExpect(model().attributeExists("updateProfileForm"))
-        .andExpect(model().attributeExists("changePasswordForm"));
+        .andExpect(model().attributeExists("changePasswordForm"))
+        .andExpect(model().attributeExists("mfaVerificationForm"))
+        .andExpect(model().attributeExists("mfaDisableForm"));
   }
 
   @Test
@@ -230,5 +236,99 @@ class AccountPortalControllerTests {
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl("/account"))
         .andExpect(flash().attribute("errorMessage", "Password update failed: Current password is incorrect"));
+  }
+
+  @Test
+  void initiateMfaSetup_success_setsFlashAttribute() throws Exception {
+    MfaSetupDto setup = new MfaSetupDto("SECRET123", "otpauth://uri", List.of("c1", "c2"));
+    when(apiClient.initiateMfaSetup("mock-access-token", "demo")).thenReturn(setup);
+
+    mockMvc.perform(post("/account/mfa/setup"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/account"))
+        .andExpect(flash().attribute("mfaSetup", setup));
+
+    verify(apiClient).initiateMfaSetup("mock-access-token", "demo");
+  }
+
+  @Test
+  void initiateMfaSetup_apiError_setsErrorMessage() throws Exception {
+    doThrow(new AccountPortalApiException(500, "Setup failed"))
+        .when(apiClient).initiateMfaSetup(any(), any());
+
+    mockMvc.perform(post("/account/mfa/setup"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/account"))
+        .andExpect(flash().attributeExists("mfaError"));
+  }
+
+  @Test
+  void activateMfa_success_redirectsWithFlashMessage() throws Exception {
+    mockMvc.perform(post("/account/mfa/activate")
+            .param("code", "123456"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/account"))
+        .andExpect(flash().attribute("mfaSuccess", "Two-factor authentication has been successfully activated on your account."));
+
+    verify(apiClient).activateMfa("mock-access-token", "demo", "123456");
+  }
+
+  @Test
+  void activateMfa_blankCode_redirectsWithErrorMessage() throws Exception {
+    mockMvc.perform(post("/account/mfa/activate")
+            .param("code", "")
+            .param("secret", "SECRET123")
+            .param("qrCodeUri", "otpauth://uri"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/account"))
+        .andExpect(flash().attributeExists("mfaError"))
+        .andExpect(flash().attributeExists("mfaSetup"));
+  }
+
+  @Test
+  void activateMfa_apiError_preservesSetupAndSetsErrorMessage() throws Exception {
+    doThrow(new AccountPortalApiException(400, "Invalid code"))
+        .when(apiClient).activateMfa(any(), any(), any());
+
+    mockMvc.perform(post("/account/mfa/activate")
+            .param("code", "000000")
+            .param("secret", "SECRET123")
+            .param("qrCodeUri", "otpauth://uri"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/account"))
+        .andExpect(flash().attributeExists("mfaError"))
+        .andExpect(flash().attributeExists("mfaSetup"));
+  }
+
+  @Test
+  void disableMfa_success_redirectsWithFlashMessage() throws Exception {
+    mockMvc.perform(post("/account/mfa/disable")
+            .param("code", "123456"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/account"))
+        .andExpect(flash().attribute("mfaSuccess", "Two-factor authentication has been disabled for your account."));
+
+    verify(apiClient).disableMfa("mock-access-token", "demo", "123456");
+  }
+
+  @Test
+  void disableMfa_blankCode_redirectsWithErrorMessage() throws Exception {
+    mockMvc.perform(post("/account/mfa/disable")
+            .param("code", ""))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/account"))
+        .andExpect(flash().attributeExists("mfaError"));
+  }
+
+  @Test
+  void disableMfa_apiError_redirectsWithErrorMessage() throws Exception {
+    doThrow(new AccountPortalApiException(400, "Invalid code"))
+        .when(apiClient).disableMfa(any(), any(), any());
+
+    mockMvc.perform(post("/account/mfa/disable")
+            .param("code", "wrongCode"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/account"))
+        .andExpect(flash().attributeExists("mfaError"));
   }
 }

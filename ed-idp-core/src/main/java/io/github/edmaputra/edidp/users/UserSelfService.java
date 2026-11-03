@@ -35,4 +35,41 @@ public interface UserSelfService {
    * @param request the password change request
    */
   void changeMyPassword(String subject, String tenantId, ChangePasswordRequest request);
+
+  /**
+   * Retrieves the current Multi-Factor Authentication status for the authenticated user.
+   *
+   * @param subject the user identifier
+   * @param tenantId the resolved tenant identifier
+   * @return the user MFA status response
+   */
+  UserMfaStatusResponse getMyMfaStatus(String subject, String tenantId);
+
+  /**
+   * Initiates TOTP Multi-Factor Authentication enrollment, generating a shared secret,
+   * QR code URI, and single-use backup recovery codes.
+   *
+   * @param subject the user identifier
+   * @param tenantId the resolved tenant identifier
+   * @return the MFA setup response
+   */
+  MfaEnrollmentSetupResponse initiateMyMfaSetup(String subject, String tenantId);
+
+  /**
+   * Activates Multi-Factor Authentication after verifying a valid 6-digit TOTP code.
+   *
+   * @param subject the user identifier
+   * @param tenantId the resolved tenant identifier
+   * @param code the 6-digit verification code
+   */
+  void activateMyMfa(String subject, String tenantId, String code);
+
+  /**
+   * Disables Multi-Factor Authentication on the user's account after verifying a code or password.
+   *
+   * @param subject the user identifier
+   * @param tenantId the resolved tenant identifier
+   * @param code the verification code or password
+   */
+  void disableMyMfa(String subject, String tenantId, String code);
 }

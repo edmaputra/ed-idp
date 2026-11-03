@@ -31,6 +31,20 @@
       border-radius: 0.75rem;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     }
+    .backup-code-pill {
+      font-family: monospace;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      background: var(--bs-tertiary-bg);
+      border: 1px dashed var(--bs-border-color);
+      padding: 0.35rem 0.6rem;
+      border-radius: 0.375rem;
+      text-align: center;
+    }
+    #qrcode canvas, #qrcode img {
+      margin: 0 auto;
+      border-radius: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -82,9 +96,19 @@
       <span th:text="${passwordSuccess}">Password changed successfully.</span>
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
+    <div th:if="${mfaSuccess}" class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+      <i class="bi bi-shield-fill-check fs-5"></i>
+      <span th:text="${mfaSuccess}">Two-Factor Authentication updated successfully.</span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
     <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
       <i class="bi bi-exclamation-triangle-fill fs-5"></i>
       <span th:text="${errorMessage}">An error occurred.</span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <div th:if="${mfaError}" class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+      <i class="bi bi-shield-fill-x fs-5"></i>
+      <span th:text="${mfaError}">Two-Factor Authentication error.</span>
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 
@@ -112,6 +136,15 @@
             <div class="list-group-item d-flex justify-content-between px-0 py-2">
               <span class="text-secondary">Tenant Realm:</span>
               <span class="badge text-bg-primary rounded-pill font-monospace" th:text="${profile != null ? profile.tenantId : 'demo'}">demo</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between px-0 py-2">
+              <span class="text-secondary">2FA Status:</span>
+              <span th:if="${mfaStatus != null and mfaStatus.enabled}" class="badge text-bg-success rounded-pill d-inline-flex align-items-center gap-1">
+                <i class="bi bi-shield-check"></i> Enabled
+              </span>
+              <span th:unless="${mfaStatus != null and mfaStatus.enabled}" class="badge text-bg-secondary rounded-pill d-inline-flex align-items-center gap-1">
+                <i class="bi bi-shield-slash"></i> Disabled
+              </span>
             </div>
           </div>
 
@@ -164,6 +197,200 @@
           </form>
         </div>
 
+        <!-- Two-Factor Authentication (MFA / TOTP) Card -->
+        <div class="card p-4 mb-4">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-shield-lock-fill fs-4 text-success"></i>
+              <div>
+                <h5 class="fw-bold mb-0">Two-Factor Authentication (2FA)</h5>
+                <span class="text-secondary small">Secure your account with RFC 6238 time-based authenticator codes (TOTP)</span>
+              </div>
+            </div>
+            <div>
+              <span th:if="${mfaStatus != null and mfaStatus.enabled}" class="badge text-bg-success rounded-pill px-3 py-2 d-inline-flex align-items-center gap-1">
+                <i class="bi bi-shield-check"></i> Enabled
+              </span>
+              <span th:unless="${mfaStatus != null and mfaStatus.enabled}" class="badge text-bg-secondary rounded-pill px-3 py-2 d-inline-flex align-items-center gap-1">
+                <i class="bi bi-shield-x"></i> Disabled
+              </span>
+            </div>
+          </div>
+
+          <!-- Wizard State 1: Setup in Progress (mfaSetup != null) -->
+          <div th:if="${mfaSetup != null}" class="border rounded-3 p-4 bg-body-tertiary">
+            <div class="d-flex align-items-center gap-2 mb-3 text-primary">
+              <i class="bi bi-qr-code-scan fs-4"></i>
+              <h6 class="fw-bold mb-0">Enroll Authenticator App</h6>
+            </div>
+
+            <p class="small text-secondary mb-4">
+              Complete the three steps below to activate Two-Factor Authentication on your account.
+            </p>
+
+            <div class="row g-4">
+              <!-- Step 1: Scan QR Code -->
+              <div class="col-12 col-md-5 text-center border-end-md">
+                <div class="fw-semibold small mb-2 text-start">
+                  <span class="badge text-bg-primary rounded-pill me-1">Step 1</span> Scan QR Code
+                </div>
+                <div id="qrcode" class="p-2 border rounded-3 bg-white d-inline-block shadow-sm my-2"></div>
+                <div class="mt-2">
+                  <div class="text-secondary small mb-1">Or enter manual key:</div>
+                  <div class="input-group input-group-sm mb-2">
+                    <input type="text" class="form-control font-monospace text-center fw-bold" id="mfaSecretDisplay" th:value="${mfaSetup.secret}" readonly>
+                    <button class="btn btn-outline-secondary" type="button" onclick="copyText('mfaSecretDisplay', this)" title="Copy Secret">
+                      <i class="bi bi-clipboard"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 2 & 3: Backup Codes & Verification Form -->
+              <div class="col-12 col-md-7">
+                <!-- Backup Codes Section -->
+                <div class="mb-4">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="fw-semibold small">
+                      <span class="badge text-bg-primary rounded-pill me-1">Step 2</span> Emergency Recovery Codes
+                    </div>
+                    <button class="btn btn-link btn-sm p-0 text-decoration-none d-inline-flex align-items-center gap-1"
+                            type="button"
+                            onclick="copyBackupCodes(this)">
+                      <i class="bi bi-copy"></i>
+                      <span>Copy All Codes</span>
+                    </button>
+                  </div>
+                  <div class="alert alert-warning py-2 px-3 small d-flex align-items-start gap-2 mb-2">
+                    <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-0.5"></i>
+                    <span>Save these single-use codes safely. If you lose your authenticator app, they are required for account recovery.</span>
+                  </div>
+                  <div class="row g-2" id="backupCodesContainer">
+                    <div th:each="code : ${mfaSetup.backupCodes}" class="col-6 col-sm-3">
+                      <div class="backup-code-pill small" th:text="${code}">12345678</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Activation Form -->
+                <div class="border-top pt-3">
+                  <div class="fw-semibold small mb-2">
+                    <span class="badge text-bg-primary rounded-pill me-1">Step 3</span> Enter 6-Digit Code
+                  </div>
+                  <form th:action="@{/account/mfa/activate}" method="post">
+                    <!-- Preserved Setup Details -->
+                    <input type="hidden" name="secret" th:value="${mfaSetup.secret}">
+                    <input type="hidden" name="qrCodeUri" th:value="${mfaSetup.qrCodeUri}">
+                    <th:block th:each="bc : ${mfaSetup.backupCodes}">
+                      <input type="hidden" name="backupCodes" th:value="${bc}">
+                    </th:block>
+
+                    <div class="d-flex gap-2 align-items-center">
+                      <input type="text"
+                             name="code"
+                             id="mfaCodeInput"
+                             class="form-control form-control-lg font-monospace text-center fw-bold letter-spacing-1"
+                             style="max-width: 200px;"
+                             placeholder="000000"
+                             maxlength="8"
+                             autocomplete="one-time-code"
+                             required
+                             autofocus>
+                      <button type="submit" class="btn btn-success btn-lg px-4 d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-check-lg"></i>
+                        <span>Activate 2FA</span>
+                      </button>
+                      <a href="/account" class="btn btn-outline-secondary btn-lg">Cancel</a>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wizard State 2: MFA Already Active -->
+          <div th:if="${mfaSetup == null and mfaStatus != null and mfaStatus.enabled}">
+            <div class="d-flex align-items-start gap-3 p-3 rounded-3 bg-success-subtle border border-success-subtle mb-3">
+              <i class="bi bi-shield-check fs-3 text-success flex-shrink-0"></i>
+              <div>
+                <h6 class="fw-bold mb-1 text-success-emphasis">Two-Factor Authentication is Active</h6>
+                <p class="small text-secondary mb-1">
+                  Your account is protected. Every sign-in requires your password plus a 6-digit verification code from your authenticator device or a recovery backup code.
+                </p>
+                <div th:if="${mfaStatus.enrolledAt != null}" class="small text-muted font-monospace">
+                  Enrolled on: <span th:text="${#temporals.format(mfaStatus.enrolledAt, 'yyyy-MM-dd HH:mm:ss')}">2026-11-04 12:00:00</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Disable MFA Accordion / Section -->
+            <div class="border rounded-3 p-3 bg-body-tertiary">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold mb-0 text-danger d-flex align-items-center gap-2">
+                    <i class="bi bi-shield-slash"></i>
+                    <span>Disable Two-Factor Authentication</span>
+                  </h6>
+                  <span class="text-secondary small">Temporarily or permanently remove 2FA requirements from your account</span>
+                </div>
+                <button class="btn btn-outline-danger btn-sm rounded-pill px-3"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#disableMfaCollapse"
+                        aria-expanded="false"
+                        aria-controls="disableMfaCollapse">
+                  Disable 2FA...
+                </button>
+              </div>
+
+              <div class="collapse mt-3" id="disableMfaCollapse">
+                <div class="card card-body border-danger-subtle bg-danger-subtle bg-opacity-10">
+                  <p class="small text-secondary mb-3">
+                    To confirm disabling two-factor authentication, enter a valid 6-digit TOTP code, single-use recovery code, or your current password below:
+                  </p>
+                  <form th:action="@{/account/mfa/disable}" method="post">
+                    <div class="row g-2 align-items-center">
+                      <div class="col-12 col-sm-6">
+                        <input type="password"
+                               name="code"
+                               class="form-control"
+                               placeholder="6-digit code or current password"
+                               required
+                               autocomplete="current-password">
+                      </div>
+                      <div class="col-12 col-sm-auto">
+                        <button type="submit" class="btn btn-danger d-inline-flex align-items-center gap-2">
+                          <i class="bi bi-trash3"></i>
+                          <span>Confirm &amp; Disable</span>
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wizard State 3: MFA Not Configured -->
+          <div th:if="${mfaSetup == null and (mfaStatus == null or !mfaStatus.enabled)}">
+            <div class="p-3 bg-body-tertiary border rounded-3 text-center py-4">
+              <div class="mx-auto p-3 bg-secondary-subtle text-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 56px; height: 56px;">
+                <i class="bi bi-shield-lock fs-3"></i>
+              </div>
+              <h6 class="fw-bold mb-1">Two-Factor Authentication is Not Configured</h6>
+              <p class="small text-secondary mb-3 mx-auto" style="max-width: 520px;">
+                Protect your account against compromised passwords. When enabled, signing in requires your primary credentials plus a time-based verification code from an app like Google Authenticator or Microsoft Authenticator.
+              </p>
+              <form th:action="@{/account/mfa/setup}" method="post">
+                <button type="submit" class="btn btn-primary px-4 py-2 d-inline-flex align-items-center gap-2 rounded-pill shadow-sm">
+                  <i class="bi bi-shield-plus"></i>
+                  <span>Set Up Two-Factor Authentication</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
         <!-- Change Password Card -->
         <div class="card p-4">
           <div class="d-flex align-items-center gap-2 mb-3">
@@ -210,7 +437,8 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
+  <script th:src="@{/account-assets/js/qrcode.min.js}"></script>
+  <script th:inline="javascript">
     function initTheme() {
       const saved = localStorage.getItem('edidp-theme') || 'light';
       document.documentElement.setAttribute('data-bs-theme', saved);
@@ -239,7 +467,53 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', initTheme);
+    function copyText(elementId, btn) {
+      const el = document.getElementById(elementId);
+      if (el) {
+        navigator.clipboard.writeText(el.value || el.innerText).then(() => {
+          const original = btn.innerHTML;
+          btn.innerHTML = '<i class="bi bi-check2"></i>';
+          btn.classList.add('btn-success');
+          btn.classList.remove('btn-outline-secondary');
+          setTimeout(() => {
+            btn.innerHTML = original;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-secondary');
+          }, 2000);
+        });
+      }
+    }
+
+    function copyBackupCodes(btn) {
+      const pills = document.querySelectorAll('.backup-code-pill');
+      const codes = Array.from(pills).map(p => p.innerText.trim()).join('\n');
+      navigator.clipboard.writeText(codes).then(() => {
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check2 text-success"></i> <span class="text-success">Copied!</span>';
+        setTimeout(() => {
+          btn.innerHTML = original;
+        }, 2000);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+
+      /*[# th:if="${mfaSetup != null}"]*/
+      const qrTarget = document.getElementById('qrcode');
+      const qrUri = /*[[${mfaSetup.qrCodeUri}]]*/ '';
+      if (qrTarget && qrUri && typeof QRCode !== 'undefined') {
+        new QRCode(qrTarget, {
+          text: qrUri,
+          width: 180,
+          height: 180,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+      /*[/]*/
+    });
   </script>
 </body>
 </html>

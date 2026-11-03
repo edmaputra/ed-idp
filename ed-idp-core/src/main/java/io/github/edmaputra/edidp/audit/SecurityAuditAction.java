@@ -75,5 +75,15 @@ public enum SecurityAuditAction {
   /**
    * User credentials / password altered.
    */
-  USER_PASSWORD_CHANGED
+  USER_PASSWORD_CHANGED,
+
+  /**
+   * Multi-Factor Authentication enrolled and activated by user.
+   */
+  MFA_ENROLLED,
+
+  /**
+   * Multi-Factor Authentication disabled on user account.
+   */
+  MFA_DISABLED
 }

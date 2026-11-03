@@ -140,6 +140,8 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.GET, "/api/v1/users/me").hasAuthority("SCOPE_profile")
             .requestMatchers(HttpMethod.PUT, "/api/v1/users/me").hasAnyAuthority("SCOPE_profile:write", "SCOPE_account:manage")
             .requestMatchers(HttpMethod.POST, "/api/v1/users/me/password").hasAnyAuthority("SCOPE_password:write", "SCOPE_account:manage")
+            .requestMatchers(HttpMethod.GET, "/api/v1/users/me/mfa").hasAnyAuthority("SCOPE_profile", "SCOPE_account:manage")
+            .requestMatchers(HttpMethod.POST, "/api/v1/users/me/mfa/**").hasAnyAuthority("SCOPE_mfa:write", "SCOPE_account:manage")
             .anyRequest().authenticated()
         )
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder)));

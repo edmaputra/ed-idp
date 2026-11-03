@@ -59,7 +59,7 @@ spring.security.oauth2.client.registration.edidp.client-id=ed-idp-account-portal
 spring.security.oauth2.client.registration.edidp.client-authentication-method=none
 spring.security.oauth2.client.registration.edidp.authorization-grant-type=authorization_code
 spring.security.oauth2.client.registration.edidp.redirect-uri={baseUrl}/login/oauth2/code/{registrationId}
-spring.security.oauth2.client.registration.edidp.scope=openid,profile,email,profile:write,password:write,account:manage
+spring.security.oauth2.client.registration.edidp.scope=openid,profile,email,profile:write,password:write,mfa:write,account:manage
 
 # Provider Discovery Endpoints
 spring.security.oauth2.client.provider.edidp.authorization-uri=${edidp.auth-server-url}/oauth2/authorize
@@ -85,6 +85,18 @@ All user operations are performed by calling `ed-idp-core`'s OAuth 2.1 Resource 
 - **`changePassword(accessToken, tenantId, request)`**:
   - Request: `POST /api/v1/users/me/password` with JSON body `{ currentPassword, newPassword, confirmPassword }`
   - Scopes evaluated: `SCOPE_password:write` or `SCOPE_account:manage`.
+- **`getMfaStatus(accessToken, tenantId)`**:
+  - Request: `GET /api/v1/users/me/mfa`
+  - Scopes evaluated: `SCOPE_profile` or `SCOPE_account:manage`.
+- **`initiateMfaSetup(accessToken, tenantId)`**:
+  - Request: `POST /api/v1/users/me/mfa/setup`
+  - Scopes evaluated: `SCOPE_mfa:write` or `SCOPE_account:manage`.
+- **`activateMfa(accessToken, tenantId, code)`**:
+  - Request: `POST /api/v1/users/me/mfa/activate` with JSON body `{ "code": "..." }`
+  - Scopes evaluated: `SCOPE_mfa:write` or `SCOPE_account:manage`.
+- **`disableMfa(accessToken, tenantId)`**:
+  - Request: `POST /api/v1/users/me/mfa/disable`
+  - Scopes evaluated: `SCOPE_mfa:write` or `SCOPE_account:manage`.
 
 ---
 
@@ -93,5 +105,9 @@ All user operations are performed by calling `ed-idp-core`'s OAuth 2.1 Resource 
 1. **Profile Overview**: Displays avatar initial, username, primary email, department, tenant realm, and assigned roles/groups pills.
 2. **Profile Editing**: Intuitive form to update display name and department.
 3. **In-Session Password Change**: Password change card with client and server-side validation.
-4. **Dark / Light Theme Toggle**: Persistent theme switcher using Bootstrap 5.3 `data-bs-theme` saved to `localStorage`.
-5. **Session Termination**: Integrated Sign Out button redirecting to `/logged-out`.
+4. **Self-Service Multi-Factor Authentication (2FA)**:
+   - Interactive 3-step setup wizard with offline client-side QR rendering (`qrcode.min.js`), secret key copying, emergency backup recovery codes grid with "Copy All Codes", and instant TOTP verification.
+   - Status indicators displaying enabled timestamp badge and collapsible confirmation to disable 2FA.
+   - See [Feature 16 — Self-Service MFA Enrollment](16-self-service-mfa-enrollment.md) for complete details.
+5. **Dark / Light Theme Toggle**: Persistent theme switcher using Bootstrap 5.3 `data-bs-theme` saved to `localStorage`.
+6. **Session Termination**: Integrated Sign Out button redirecting to `/logged-out`.

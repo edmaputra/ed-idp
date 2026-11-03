@@ -1,6 +1,7 @@
 package io.github.edmaputra.edidp.users;
 
 import io.github.edmaputra.edidp.tenancy.TenantContext;
+import io.github.edmaputra.iam.domain.exception.AuthenticationException;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * REST API controller providing self-service user profile and credential maintenance.
+ * REST API controller providing self-service user profile, credential, and Multi-Factor Authentication maintenance.
  * Protected as an OAuth 2.1 Resource Server endpoint via Bearer JWT tokens.
  *
  * @author edmaputra
@@ -57,8 +58,42 @@ public class UserSelfServiceRestController {
     return ResponseEntity.noContent().build();
   }
 
-  @ExceptionHandler(IllegalArgumentException.class)
-  public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
+  @GetMapping("/mfa")
+  public ResponseEntity<UserMfaStatusResponse> getMyMfaStatus(@AuthenticationPrincipal Jwt jwt) {
+    String subject = resolveSubject(jwt);
+    String tenantId = TenantContext.getCurrentTenantOrDefault("demo");
+    return ResponseEntity.ok(userSelfService.getMyMfaStatus(subject, tenantId));
+  }
+
+  @PostMapping("/mfa/setup")
+  public ResponseEntity<MfaEnrollmentSetupResponse> initiateMyMfaSetup(@AuthenticationPrincipal Jwt jwt) {
+    String subject = resolveSubject(jwt);
+    String tenantId = TenantContext.getCurrentTenantOrDefault("demo");
+    return ResponseEntity.ok(userSelfService.initiateMyMfaSetup(subject, tenantId));
+  }
+
+  @PostMapping("/mfa/activate")
+  public ResponseEntity<Void> activateMyMfa(
+      @AuthenticationPrincipal Jwt jwt,
+      @RequestBody MfaVerificationRequest request) {
+    String subject = resolveSubject(jwt);
+    String tenantId = TenantContext.getCurrentTenantOrDefault("demo");
+    userSelfService.activateMyMfa(subject, tenantId, request.code());
+    return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/mfa/disable")
+  public ResponseEntity<Void> disableMyMfa(
+      @AuthenticationPrincipal Jwt jwt,
+      @RequestBody MfaVerificationRequest request) {
+    String subject = resolveSubject(jwt);
+    String tenantId = TenantContext.getCurrentTenantOrDefault("demo");
+    userSelfService.disableMyMfa(subject, tenantId, request.code());
+    return ResponseEntity.noContent().build();
+  }
+
+  @ExceptionHandler({IllegalArgumentException.class, AuthenticationException.class})
+  public ResponseEntity<Map<String, String>> handleClientException(RuntimeException ex) {
     return ResponseEntity.badRequest().body(Map.of(
         "error", "bad_request",
         "error_description", ex.getMessage() != null ? ex.getMessage() : "Invalid request"
