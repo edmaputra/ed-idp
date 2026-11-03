@@ -1,9 +1,5 @@
 package io.github.edmaputra.edidp.consent;
 
-import io.github.edmaputra.edidp.audit.AuditEventPort;
-import io.github.edmaputra.edidp.audit.SecurityAuditAction;
-import io.github.edmaputra.edidp.audit.SecurityAuditEvent;
-import io.github.edmaputra.edidp.audit.SecurityAuditStatus;
 import io.github.edmaputra.iam.domain.security.RedirectUriPolicy;
 import java.net.URI;
 import java.util.Arrays;
@@ -11,7 +7,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
@@ -31,28 +26,12 @@ import org.springframework.web.util.UriComponentsBuilder;
  */
 @Controller
 @RequestMapping("/oauth2")
+@RequiredArgsConstructor
 @Slf4j
 public class OAuth2AuthorizationConsentController {
 
   private final AuthorizationConsentService authorizationConsentService;
   private final RegisteredClientRepository registeredClientRepository;
-  private final AuditEventPort auditEventPort;
-
-  @Autowired
-  public OAuth2AuthorizationConsentController(
-      AuthorizationConsentService authorizationConsentService,
-      RegisteredClientRepository registeredClientRepository,
-      AuditEventPort auditEventPort) {
-    this.authorizationConsentService = authorizationConsentService;
-    this.registeredClientRepository = registeredClientRepository;
-    this.auditEventPort = (auditEventPort != null) ? auditEventPort : AuditEventPort.noop();
-  }
-
-  public OAuth2AuthorizationConsentController(
-      AuthorizationConsentService authorizationConsentService,
-      RegisteredClientRepository registeredClientRepository) {
-    this(authorizationConsentService, registeredClientRepository, AuditEventPort.noop());
-  }
 
   @GetMapping("/authorize-consent")
   public String consentForm(
@@ -138,14 +117,7 @@ public class OAuth2AuthorizationConsentController {
 
     if ("deny".equalsIgnoreCase(action)) {
       log.info("User {} denied consent for client {}", authentication.getName(), clientId);
-      SecurityAuditEvent auditEvent = SecurityAuditEvent.builder()
-          .action(SecurityAuditAction.CONSENT_DENIED)
-          .status(SecurityAuditStatus.SUCCESS)
-          .principal(authentication.getName())
-          .clientIdentifier(clientId)
-          .detail("reason", "user_denied")
-          .build();
-      auditEventPort.record(auditEvent);
+      authorizationConsentService.denyConsent(authentication.getName(), clientId, "user_denied");
 
       UriComponentsBuilder denyBuilder = UriComponentsBuilder.fromUriString(redirectUri)
           .queryParam("error", "access_denied")
@@ -176,14 +148,7 @@ public class OAuth2AuthorizationConsentController {
 
     if (approvedSet.isEmpty()) {
       log.info("User {} approved no scopes for client {}", principalName, clientId);
-      SecurityAuditEvent auditEvent = SecurityAuditEvent.builder()
-          .action(SecurityAuditAction.CONSENT_DENIED)
-          .status(SecurityAuditStatus.SUCCESS)
-          .principal(principalName)
-          .clientIdentifier(clientId)
-          .detail("reason", "empty_scopes")
-          .build();
-      auditEventPort.record(auditEvent);
+      authorizationConsentService.denyConsent(principalName, clientId, "empty_scopes");
 
       UriComponentsBuilder denyBuilder = UriComponentsBuilder.fromUriString(redirectUri)
           .queryParam("error", "access_denied")
@@ -195,16 +160,7 @@ public class OAuth2AuthorizationConsentController {
     }
 
     CheckConsentCommand command = new CheckConsentCommand(principalName, registeredClientId, approvedSet);
-    authorizationConsentService.approveConsent(command);
-
-    SecurityAuditEvent approvedAuditEvent = SecurityAuditEvent.builder()
-        .action(SecurityAuditAction.CONSENT_GRANTED)
-        .status(SecurityAuditStatus.SUCCESS)
-        .principal(principalName)
-        .clientIdentifier(clientId)
-        .detail("approved_scopes", approvedSet)
-        .build();
-    auditEventPort.record(approvedAuditEvent);
+    authorizationConsentService.approveConsent(command, clientId);
 
     log.info(
         "User {} approved client {} for scopes: {}",

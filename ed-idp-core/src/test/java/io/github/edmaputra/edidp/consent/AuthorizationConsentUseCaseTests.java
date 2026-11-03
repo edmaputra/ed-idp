@@ -5,14 +5,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.github.edmaputra.edidp.consent.AuthorizationConsentService;
-import io.github.edmaputra.edidp.consent.CheckConsentCommand;
-import io.github.edmaputra.edidp.consent.ConsentDecisionResult;
-import io.github.edmaputra.edidp.consent.ConsentStore;
+import io.github.edmaputra.edidp.audit.AuditEventPort;
+import io.github.edmaputra.edidp.audit.SecurityAuditAction;
+import io.github.edmaputra.edidp.audit.SecurityAuditEvent;
+import io.github.edmaputra.edidp.audit.SecurityAuditStatus;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -22,11 +23,14 @@ class AuthorizationConsentServiceTests {
   @Mock
   private ConsentStore consentStore;
 
+  @Mock
+  private AuditEventPort auditEventPort;
+
   private AuthorizationConsentService useCase;
 
   @BeforeEach
   void setUp() {
-    useCase = new AuthorizationConsentService(consentStore);
+    useCase = new AuthorizationConsentService(consentStore, auditEventPort);
   }
 
   @Test
@@ -121,7 +125,7 @@ class AuthorizationConsentServiceTests {
   }
 
   @Test
-  void approveConsentSavesConsentWithRequestedScopes() {
+  void approveConsentSavesConsentWithRequestedScopesAndAudits() {
     // Arrange
     String principalName = "demo-user";
     String registeredClientId = "client-id";
@@ -133,13 +137,72 @@ class AuthorizationConsentServiceTests {
         requestedScopes);
 
     // Act
-    useCase.approveConsent(command);
+    useCase.approveConsent(command, "demo-client");
 
     // Assert
     verify(consentStore).saveConsent(
         principalName,
         registeredClientId,
         requestedScopes);
+
+    ArgumentCaptor<SecurityAuditEvent> captor = ArgumentCaptor.forClass(SecurityAuditEvent.class);
+    verify(auditEventPort).record(captor.capture());
+    SecurityAuditEvent event = captor.getValue();
+    assertThat(event.action()).isEqualTo(SecurityAuditAction.CONSENT_GRANTED);
+    assertThat(event.status()).isEqualTo(SecurityAuditStatus.SUCCESS);
+    assertThat(event.principal()).isEqualTo(principalName);
+    assertThat(event.clientIdentifier()).isEqualTo("demo-client");
+    assertThat(event.details().get("approved_scopes")).isEqualTo(requestedScopes);
+  }
+
+  @Test
+  void approveConsentSingleArgDelegatesWithRegisteredClientId() {
+    // Arrange
+    String principalName = "demo-user";
+    String registeredClientId = "client-id";
+    Set<String> requestedScopes = Set.of("read");
+
+    CheckConsentCommand command = new CheckConsentCommand(
+        principalName,
+        registeredClientId,
+        requestedScopes);
+
+    // Act
+    useCase.approveConsent(command);
+
+    // Assert
+    verify(consentStore).saveConsent(principalName, registeredClientId, requestedScopes);
+    ArgumentCaptor<SecurityAuditEvent> captor = ArgumentCaptor.forClass(SecurityAuditEvent.class);
+    verify(auditEventPort).record(captor.capture());
+    SecurityAuditEvent event = captor.getValue();
+    assertThat(event.action()).isEqualTo(SecurityAuditAction.CONSENT_GRANTED);
+    assertThat(event.clientIdentifier()).isEqualTo(registeredClientId);
+  }
+
+  @Test
+  void denyConsentRecordsConsentDeniedAuditEvent() {
+    // Act
+    useCase.denyConsent("demo-user", "demo-client", "user_denied");
+
+    // Assert
+    ArgumentCaptor<SecurityAuditEvent> captor = ArgumentCaptor.forClass(SecurityAuditEvent.class);
+    verify(auditEventPort).record(captor.capture());
+    SecurityAuditEvent event = captor.getValue();
+    assertThat(event.action()).isEqualTo(SecurityAuditAction.CONSENT_DENIED);
+    assertThat(event.status()).isEqualTo(SecurityAuditStatus.SUCCESS);
+    assertThat(event.principal()).isEqualTo("demo-user");
+    assertThat(event.clientIdentifier()).isEqualTo("demo-client");
+    assertThat(event.details().get("reason")).isEqualTo("user_denied");
+  }
+
+  @Test
+  void fallbackConstructorDoesNotThrowOnApprove() {
+    AuthorizationConsentService fallback = new AuthorizationConsentService(consentStore);
+    CheckConsentCommand command = new CheckConsentCommand("user", "client", Set.of("read"));
+
+    fallback.approveConsent(command);
+
+    verify(consentStore).saveConsent("user", "client", Set.of("read"));
   }
 
   @Test
