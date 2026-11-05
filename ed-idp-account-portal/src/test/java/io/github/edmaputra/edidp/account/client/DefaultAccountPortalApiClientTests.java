@@ -11,9 +11,12 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import io.github.edmaputra.edidp.account.dto.ChangePasswordDto;
+import io.github.edmaputra.edidp.account.dto.MfaSetupDto;
+import io.github.edmaputra.edidp.account.dto.MfaStatusDto;
 import io.github.edmaputra.edidp.account.dto.UpdateProfileDto;
 import io.github.edmaputra.edidp.account.dto.UserProfileDto;
 import io.github.edmaputra.edidp.account.exception.AccountPortalApiException;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -155,6 +158,82 @@ class DefaultAccountPortalApiClientTests {
         .isInstanceOf(AccountPortalApiException.class)
         .hasMessageContaining("Current password is incorrect")
         .extracting("statusCode").isEqualTo(400);
+
+    mockServer.verify();
+  }
+
+  @Test
+  void getMfaStatus_success() {
+    String jsonResponse = """
+        {
+          "enabled": true,
+          "enrolledAt": "2026-11-04T00:00:00Z"
+        }
+        """;
+
+    mockServer.expect(requestTo("http://localhost:9000/api/v1/users/me/mfa"))
+        .andExpect(method(HttpMethod.GET))
+        .andExpect(header("Authorization", "Bearer test-token"))
+        .andExpect(header("X-Tenant-ID", "demo"))
+        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+
+    MfaStatusDto status = client.getMfaStatus("test-token", "demo");
+
+    assertThat(status.enabled()).isTrue();
+    assertThat(status.enrolledAt()).isEqualTo(Instant.parse("2026-11-04T00:00:00Z"));
+
+    mockServer.verify();
+  }
+
+  @Test
+  void initiateMfaSetup_success() {
+    String jsonResponse = """
+        {
+          "secret": "JBSWY3DPEHPK3PXP",
+          "qrCodeUri": "otpauth://totp/ed-idp:alice?secret=JBSWY3DPEHPK3PXP",
+          "backupCodes": ["11112222", "33334444"]
+        }
+        """;
+
+    mockServer.expect(requestTo("http://localhost:9000/api/v1/users/me/mfa/setup"))
+        .andExpect(method(HttpMethod.POST))
+        .andExpect(header("Authorization", "Bearer test-token"))
+        .andExpect(header("X-Tenant-ID", "demo"))
+        .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+
+    MfaSetupDto setup = client.initiateMfaSetup("test-token", "demo");
+
+    assertThat(setup.secret()).isEqualTo("JBSWY3DPEHPK3PXP");
+    assertThat(setup.qrCodeUri()).isEqualTo("otpauth://totp/ed-idp:alice?secret=JBSWY3DPEHPK3PXP");
+    assertThat(setup.backupCodes()).containsExactly("11112222", "33334444");
+
+    mockServer.verify();
+  }
+
+  @Test
+  void activateMfa_success() {
+    mockServer.expect(requestTo("http://localhost:9000/api/v1/users/me/mfa/activate"))
+        .andExpect(method(HttpMethod.POST))
+        .andExpect(header("Authorization", "Bearer test-token"))
+        .andExpect(header("X-Tenant-ID", "demo"))
+        .andExpect(content().json("{\"code\":\"123456\"}"))
+        .andRespond(withNoContent());
+
+    client.activateMfa("test-token", "demo", "123456");
+
+    mockServer.verify();
+  }
+
+  @Test
+  void disableMfa_success() {
+    mockServer.expect(requestTo("http://localhost:9000/api/v1/users/me/mfa/disable"))
+        .andExpect(method(HttpMethod.POST))
+        .andExpect(header("Authorization", "Bearer test-token"))
+        .andExpect(header("X-Tenant-ID", "demo"))
+        .andExpect(content().json("{\"code\":\"123456\"}"))
+        .andRespond(withNoContent());
+
+    client.disableMfa("test-token", "demo", "123456");
 
     mockServer.verify();
   }

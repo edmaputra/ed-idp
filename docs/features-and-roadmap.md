@@ -74,7 +74,23 @@
 - **Clean Separation of Concerns**: Strict role demarcation between regular end-users managing personal profiles on port `9001` and platform administrators operating the admin console on port `9000`.
 - **Modern User Experience**: Full-featured user portal styled with Bootstrap 5.3 supporting profile updates, password maintenance, assigned roles and groups review, and theme switching.
 
-### 1.9 Architectural Foundation & Persistence
+### 1.9 Structured Security Audit Logging
+> Detailed specification: [features/15-structured-security-audit-logging.md](features/15-structured-security-audit-logging.md)
+
+- **SIEM-Ready Audit Trail**: Immutable JSON log events emitted via SLF4J (`SECURITY_AUDIT`) capturing authentication lifecycle, token issuance, revocations, introspections, consent grants, user profile modifications, and MFA activities.
+- **Sensitive Data Redaction**: Automatic sanitization redacting client secrets, user passwords, TOTP codes, and bearer tokens.
+- **Modulith Boundary Observance**: Modular, event-driven, decoupled design with fail-safe error handling to avoid disrupting primary transactions.
+
+### 1.10 Self-Service MFA Enrollment (Account Portal)
+> Detailed specification: [features/16-self-service-mfa-enrollment.md](features/16-self-service-mfa-enrollment.md)
+
+- **Interactive TOTP Wizard**: Step-by-step 2FA enrollment wizard embedded within the standalone Account Portal (`ed-idp-account-portal`).
+- **Offline Client-Side QR Generation**: Uses bundled `qrcode.min.js` to render standards-compliant `otpauth://` QR codes in the user's browser without leaking seeds to third-party CDNs.
+- **Emergency Backup Recovery Codes**: Generates single-use 8-character recovery backup codes with one-click clipboard copying.
+- **MFA Activation & Disable Handshake**: Requires immediate 6-digit TOTP code verification to activate enrollment; allows secure disablement with audit trails (`MFA_ENROLLED`, `MFA_DISABLED`, `MFA_VERIFY_FAILURE`).
+- **Zero Direct DB Access**: Fully decoupled REST communication with `ed-idp-core` via `/api/v1/users/me/mfa/**` guarded by `SCOPE_profile`, `SCOPE_mfa:write`, and `SCOPE_account:manage`.
+
+### 1.11 Architectural Foundation & Persistence
 > Detailed specifications: [architecture/00-architecture.md](architecture/00-architecture.md) · [features/11-persistence-schema.md](features/11-persistence-schema.md) · [features/12-configuration.md](features/12-configuration.md)
 
 - **Vertical-Slice Modular Monolith**: Codebase structured into clean feature modules (`authorization`, `claims`, `clients`, `consent`, `tenancy`, `tokens`, `users`, `oauth`, `shared`) with dependency rules verified by **Spring Modulith**.
@@ -129,7 +145,7 @@ flowchart LR
 ### Phase 1: Production Hardening & Core Security
 > Detailed design: [roadmap/01-authentication.md](roadmap/01-authentication.md) · [roadmap/05-client-management.md](roadmap/05-client-management.md) · [roadmap/07-security-hardening.md](roadmap/07-security-hardening.md)
 
-- [ ] **Multi-Factor Authentication (MFA / TOTP)**: RFC 6238 time-based one-time password verification (Google Authenticator, Microsoft Authenticator) with QR code enrollment and backup recovery codes.
+- [x] **Multi-Factor Authentication (MFA / TOTP)**: RFC 6238 time-based one-time password verification (Google Authenticator, Microsoft Authenticator) with QR code enrollment and backup recovery codes.
 - [ ] **Automated Cryptographic Key Rotation**: Background scheduler rotating RSA/EC signing keys in JWKS with grace periods, publishing multi-key sets (`active`, `next`, `retired`).
 - [ ] **Brute-Force & Rate Limiting**: Bucket4j / token-bucket rate limiting on `/oauth2/token`, `/oauth2/authorize`, and login endpoints to mitigate credential stuffing.
 - [x] **Structured Security Audit Logging**: SIEM-ready security audit events emitted on login attempts, token issuance, consent approvals, and revocations.

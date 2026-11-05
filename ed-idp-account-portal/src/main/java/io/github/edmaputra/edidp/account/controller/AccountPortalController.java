@@ -2,10 +2,14 @@ package io.github.edmaputra.edidp.account.controller;
 
 import io.github.edmaputra.edidp.account.client.AccountPortalApiClient;
 import io.github.edmaputra.edidp.account.dto.ChangePasswordDto;
+import io.github.edmaputra.edidp.account.dto.MfaSetupDto;
+import io.github.edmaputra.edidp.account.dto.MfaStatusDto;
+import io.github.edmaputra.edidp.account.dto.MfaVerificationDto;
 import io.github.edmaputra.edidp.account.dto.UpdateProfileDto;
 import io.github.edmaputra.edidp.account.dto.UserProfileDto;
 import io.github.edmaputra.edidp.account.exception.AccountPortalApiException;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +22,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
@@ -48,13 +53,21 @@ public class AccountPortalController {
     String tenant = extractTenant(user);
 
     UserProfileDto profile = apiClient.getProfile(accessToken, tenant);
+    MfaStatusDto mfaStatus = apiClient.getMfaStatus(accessToken, tenant);
 
     model.addAttribute("profile", profile);
+    model.addAttribute("mfaStatus", mfaStatus);
     if (!model.containsAttribute("updateProfileForm")) {
       model.addAttribute("updateProfileForm", new UpdateProfileDto(profile.fullName(), profile.department()));
     }
     if (!model.containsAttribute("changePasswordForm")) {
       model.addAttribute("changePasswordForm", new ChangePasswordDto("", "", ""));
+    }
+    if (!model.containsAttribute("mfaVerificationForm")) {
+      model.addAttribute("mfaVerificationForm", new MfaVerificationDto(""));
+    }
+    if (!model.containsAttribute("mfaDisableForm")) {
+      model.addAttribute("mfaDisableForm", new MfaVerificationDto(""));
     }
     model.addAttribute("tenant", tenant);
 
@@ -118,6 +131,88 @@ public class AccountPortalController {
     } catch (AccountPortalApiException ex) {
       log.warn("Failed to change password: {}", ex.getMessage());
       redirectAttributes.addFlashAttribute("errorMessage", "Password update failed: " + ex.getMessage());
+    }
+
+    return "redirect:/account";
+  }
+
+  @PostMapping("/account/mfa/setup")
+  public String initiateMfaSetup(
+      @RegisteredOAuth2AuthorizedClient("edidp") OAuth2AuthorizedClient authorizedClient,
+      @AuthenticationPrincipal OAuth2User user,
+      RedirectAttributes redirectAttributes) {
+    try {
+      String accessToken = authorizedClient.getAccessToken().getTokenValue();
+      String tenant = extractTenant(user);
+      MfaSetupDto setup = apiClient.initiateMfaSetup(accessToken, tenant);
+      redirectAttributes.addFlashAttribute("mfaSetup", setup);
+    } catch (AccountPortalApiException ex) {
+      log.warn("Failed to initiate MFA setup: {}", ex.getMessage());
+      redirectAttributes.addFlashAttribute("mfaError", "Failed to initiate MFA setup: " + ex.getMessage());
+    }
+    return "redirect:/account";
+  }
+
+  @PostMapping("/account/mfa/activate")
+  public String activateMfa(
+      @RegisteredOAuth2AuthorizedClient("edidp") OAuth2AuthorizedClient authorizedClient,
+      @AuthenticationPrincipal OAuth2User user,
+      @RequestParam(name = "secret", required = false) String secret,
+      @RequestParam(name = "qrCodeUri", required = false) String qrCodeUri,
+      @RequestParam(name = "backupCodes", required = false) List<String> backupCodes,
+      @Valid @ModelAttribute("mfaVerificationForm") MfaVerificationDto form,
+      BindingResult bindingResult,
+      RedirectAttributes redirectAttributes) {
+
+    if (bindingResult.hasErrors()) {
+      redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.mfaVerificationForm", bindingResult);
+      redirectAttributes.addFlashAttribute("mfaVerificationForm", form);
+      if (secret != null && !secret.isBlank()) {
+        redirectAttributes.addFlashAttribute("mfaSetup", new MfaSetupDto(secret, qrCodeUri, backupCodes));
+      }
+      redirectAttributes.addFlashAttribute("mfaError", "Please provide a valid 6-digit verification code.");
+      return "redirect:/account";
+    }
+
+    try {
+      String accessToken = authorizedClient.getAccessToken().getTokenValue();
+      String tenant = extractTenant(user);
+      apiClient.activateMfa(accessToken, tenant, form.code());
+      redirectAttributes.addFlashAttribute("mfaSuccess", "Two-factor authentication has been successfully activated on your account.");
+    } catch (AccountPortalApiException ex) {
+      log.warn("Failed to activate MFA: {}", ex.getMessage());
+      if (secret != null && !secret.isBlank()) {
+        redirectAttributes.addFlashAttribute("mfaSetup", new MfaSetupDto(secret, qrCodeUri, backupCodes));
+      }
+      redirectAttributes.addFlashAttribute("mfaError", "MFA activation failed: " + ex.getMessage());
+    }
+
+    return "redirect:/account";
+  }
+
+  @PostMapping("/account/mfa/disable")
+  public String disableMfa(
+      @RegisteredOAuth2AuthorizedClient("edidp") OAuth2AuthorizedClient authorizedClient,
+      @AuthenticationPrincipal OAuth2User user,
+      @Valid @ModelAttribute("mfaDisableForm") MfaVerificationDto form,
+      BindingResult bindingResult,
+      RedirectAttributes redirectAttributes) {
+
+    if (bindingResult.hasErrors()) {
+      redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.mfaDisableForm", bindingResult);
+      redirectAttributes.addFlashAttribute("mfaDisableForm", form);
+      redirectAttributes.addFlashAttribute("mfaError", "Please enter a valid verification code or password.");
+      return "redirect:/account";
+    }
+
+    try {
+      String accessToken = authorizedClient.getAccessToken().getTokenValue();
+      String tenant = extractTenant(user);
+      apiClient.disableMfa(accessToken, tenant, form.code());
+      redirectAttributes.addFlashAttribute("mfaSuccess", "Two-factor authentication has been disabled for your account.");
+    } catch (AccountPortalApiException ex) {
+      log.warn("Failed to disable MFA: {}", ex.getMessage());
+      redirectAttributes.addFlashAttribute("mfaError", "Failed to disable MFA: " + ex.getMessage());
     }
 
     return "redirect:/account";

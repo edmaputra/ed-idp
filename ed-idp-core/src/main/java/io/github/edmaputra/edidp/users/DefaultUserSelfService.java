@@ -4,6 +4,12 @@ import io.github.edmaputra.edidp.audit.AuditEventPort;
 import io.github.edmaputra.edidp.audit.SecurityAuditAction;
 import io.github.edmaputra.edidp.audit.SecurityAuditEvent;
 import io.github.edmaputra.edidp.audit.SecurityAuditStatus;
+import io.github.edmaputra.iam.adapter.rest.MfaOperationsDelegate;
+import io.github.edmaputra.iam.application.model.MfaSetupResponse;
+import io.github.edmaputra.iam.application.model.MfaStatusResponse;
+import io.github.edmaputra.iam.domain.model.User;
+import io.github.edmaputra.iam.domain.model.UserId;
+import io.github.edmaputra.iam.domain.repository.UserRepository;
 import io.github.edmaputra.iam.domain.security.PasswordValidator;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -11,7 +17,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,24 +40,55 @@ public class DefaultUserSelfService implements UserSelfService {
   private final PasswordEncoder passwordEncoder;
   private final PasswordValidator passwordValidator;
   private final AuditEventPort auditEventPort;
+  private final MfaOperationsDelegate mfaOperationsDelegate;
+  private final UserRepository userRepository;
 
   @Autowired
   public DefaultUserSelfService(
       JdbcTemplate jdbcTemplate,
       PasswordEncoder passwordEncoder,
       PasswordValidator passwordValidator,
-      AuditEventPort auditEventPort) {
+      AuditEventPort auditEventPort,
+      ObjectProvider<MfaOperationsDelegate> mfaOperationsDelegateProvider,
+      ObjectProvider<UserRepository> userRepositoryProvider) {
+    this(
+        jdbcTemplate,
+        passwordEncoder,
+        passwordValidator,
+        auditEventPort,
+        mfaOperationsDelegateProvider != null ? mfaOperationsDelegateProvider.getIfAvailable() : null,
+        userRepositoryProvider != null ? userRepositoryProvider.getIfAvailable() : null
+    );
+  }
+
+  public DefaultUserSelfService(
+      JdbcTemplate jdbcTemplate,
+      PasswordEncoder passwordEncoder,
+      PasswordValidator passwordValidator,
+      AuditEventPort auditEventPort,
+      MfaOperationsDelegate mfaOperationsDelegate,
+      UserRepository userRepository) {
     this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate, "jdbcTemplate must not be null");
     this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder must not be null");
     this.passwordValidator = Objects.requireNonNull(passwordValidator, "passwordValidator must not be null");
     this.auditEventPort = (auditEventPort != null) ? auditEventPort : AuditEventPort.noop();
+    this.mfaOperationsDelegate = mfaOperationsDelegate;
+    this.userRepository = userRepository;
+  }
+
+  public DefaultUserSelfService(
+      JdbcTemplate jdbcTemplate,
+      PasswordEncoder passwordEncoder,
+      PasswordValidator passwordValidator,
+      AuditEventPort auditEventPort) {
+    this(jdbcTemplate, passwordEncoder, passwordValidator, auditEventPort, (MfaOperationsDelegate) null, (UserRepository) null);
   }
 
   public DefaultUserSelfService(
       JdbcTemplate jdbcTemplate,
       PasswordEncoder passwordEncoder,
       PasswordValidator passwordValidator) {
-    this(jdbcTemplate, passwordEncoder, passwordValidator, AuditEventPort.noop());
+    this(jdbcTemplate, passwordEncoder, passwordValidator, AuditEventPort.noop(), (MfaOperationsDelegate) null, (UserRepository) null);
   }
 
   private static UUID toUuid(String val) {
@@ -290,5 +329,118 @@ public class DefaultUserSelfService implements UserSelfService {
         .detail("error", error)
         .build();
     auditEventPort.record(auditEvent);
+  }
+
+  @Override
+  public UserMfaStatusResponse getMyMfaStatus(String subject, String tenantId) {
+    requireMfaCollaborators();
+    User user = findUser(subject);
+    MfaStatusResponse status = mfaOperationsDelegate.getStatus(user.getId());
+    return new UserMfaStatusResponse(status.enabled(), status.enrolledAt());
+  }
+
+  @Override
+  @Transactional
+  public MfaEnrollmentSetupResponse initiateMyMfaSetup(String subject, String tenantId) {
+    requireMfaCollaborators();
+    User user = findUser(subject);
+    MfaSetupResponse setup = mfaOperationsDelegate.initiateSetup(user.getId(), user.getEmail());
+    return new MfaEnrollmentSetupResponse(setup.secret(), setup.qrCodeUri(), setup.backupCodes());
+  }
+
+  @Override
+  @Transactional
+  public void activateMyMfa(String subject, String tenantId, String code) {
+    requireMfaCollaborators();
+    String cleanTenant = (tenantId != null && !tenantId.isBlank()) ? tenantId : "demo";
+    if (code == null || code.isBlank()) {
+      throw new IllegalArgumentException("Verification code must not be blank.");
+    }
+    User user = findUser(subject);
+    try {
+      mfaOperationsDelegate.activate(user.getId(), code.trim());
+      SecurityAuditEvent auditEvent = SecurityAuditEvent.builder()
+          .action(SecurityAuditAction.MFA_ENROLLED)
+          .status(SecurityAuditStatus.SUCCESS)
+          .principal(subject)
+          .tenantId(cleanTenant)
+          .build();
+      auditEventPort.record(auditEvent);
+    } catch (RuntimeException ex) {
+      SecurityAuditEvent auditEvent = SecurityAuditEvent.builder()
+          .action(SecurityAuditAction.MFA_VERIFY_FAILURE)
+          .status(SecurityAuditStatus.FAILURE)
+          .principal(subject)
+          .tenantId(cleanTenant)
+          .detail("error", ex.getMessage() != null ? ex.getMessage() : "MFA activation failed")
+          .build();
+      auditEventPort.record(auditEvent);
+      throw new IllegalArgumentException(ex.getMessage() != null ? ex.getMessage() : "Invalid verification code.");
+    }
+  }
+
+  @Override
+  @Transactional
+  public void disableMyMfa(String subject, String tenantId, String code) {
+    requireMfaCollaborators();
+    String cleanTenant = (tenantId != null && !tenantId.isBlank()) ? tenantId : "demo";
+    if (code == null || code.isBlank()) {
+      throw new IllegalArgumentException("Verification code or password must not be blank.");
+    }
+    User user = findUser(subject);
+    try {
+      mfaOperationsDelegate.disable(user.getId(), code.trim());
+      SecurityAuditEvent auditEvent = SecurityAuditEvent.builder()
+          .action(SecurityAuditAction.MFA_DISABLED)
+          .status(SecurityAuditStatus.SUCCESS)
+          .principal(subject)
+          .tenantId(cleanTenant)
+          .build();
+      auditEventPort.record(auditEvent);
+    } catch (RuntimeException ex) {
+      SecurityAuditEvent auditEvent = SecurityAuditEvent.builder()
+          .action(SecurityAuditAction.MFA_VERIFY_FAILURE)
+          .status(SecurityAuditStatus.FAILURE)
+          .principal(subject)
+          .tenantId(cleanTenant)
+          .detail("error", ex.getMessage() != null ? ex.getMessage() : "MFA disable failed")
+          .build();
+      auditEventPort.record(auditEvent);
+      throw new IllegalArgumentException(ex.getMessage() != null ? ex.getMessage() : "Invalid verification code or password.");
+    }
+  }
+
+  private User findUser(String subject) {
+    if (subject == null || subject.isBlank()) {
+      throw new IllegalArgumentException("Subject must not be blank");
+    }
+    UUID userUuid = toUuid(subject);
+    if (userRepository != null) {
+      if (userUuid != null) {
+        Optional<User> byId = userRepository.findById(new UserId(userUuid));
+        if (byId.isPresent()) {
+          return byId.get();
+        }
+      }
+      Optional<User> byEmail = userRepository.findByEmail(subject);
+      if (byEmail.isPresent()) {
+        return byEmail.get();
+      }
+    }
+    List<String> emails = jdbcTemplate.query(
+        "SELECT email FROM iam_user WHERE id = ? OR LOWER(email) = LOWER(?) LIMIT 1",
+        (rs, rowNum) -> rs.getString("email"),
+        userUuid, subject);
+    if (!emails.isEmpty() && userRepository != null) {
+      return userRepository.findByEmail(emails.getFirst())
+          .orElseThrow(() -> new IllegalArgumentException("User not found: " + subject));
+    }
+    throw new IllegalArgumentException("User not found: " + subject);
+  }
+
+  private void requireMfaCollaborators() {
+    if (mfaOperationsDelegate == null || userRepository == null) {
+      throw new IllegalStateException("MFA operations delegate and user repository must be configured.");
+    }
   }
 }

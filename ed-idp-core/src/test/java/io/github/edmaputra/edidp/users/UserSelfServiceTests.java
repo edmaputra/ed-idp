@@ -13,14 +13,26 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.github.edmaputra.edidp.audit.AuditEventPort;
+import io.github.edmaputra.edidp.audit.SecurityAuditAction;
+import io.github.edmaputra.edidp.audit.SecurityAuditEvent;
+import io.github.edmaputra.iam.adapter.rest.MfaOperationsDelegate;
+import io.github.edmaputra.iam.application.model.MfaSetupResponse;
+import io.github.edmaputra.iam.application.model.MfaStatusResponse;
+import io.github.edmaputra.iam.domain.model.User;
+import io.github.edmaputra.iam.domain.model.UserId;
+import io.github.edmaputra.iam.domain.repository.UserRepository;
 import io.github.edmaputra.iam.domain.security.PasswordValidator;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -238,5 +250,188 @@ class UserSelfServiceTests {
     verify(passwordValidator).validatePassword("newpass123", "bob");
     verify(passwordEncoder).encode("newpass123");
     verify(jdbcTemplate).update(contains("UPDATE iam_user SET password_hash"), eq("encoded-new-hash"), any(), any(), eq("bob"));
+  }
+
+  @Test
+  void mfaDtos_validateCorrectly() {
+    UserMfaStatusResponse status = new UserMfaStatusResponse(true, Instant.now());
+    assertThat(status.enabled()).isTrue();
+    assertThat(status.enrolledAt()).isNotNull();
+
+    MfaEnrollmentSetupResponse setup = new MfaEnrollmentSetupResponse(null, null, null);
+    assertThat(setup.secret()).isEmpty();
+    assertThat(setup.qrCodeUri()).isEmpty();
+    assertThat(setup.backupCodes()).isEmpty();
+
+    MfaVerificationRequest req = new MfaVerificationRequest(" 123456 ");
+    assertThat(req.code()).isEqualTo("123456");
+
+    assertThatThrownBy(() -> new MfaVerificationRequest("   "))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void mfaMethods_throwIllegalState_whenCollaboratorsMissing() {
+    assertThatThrownBy(() -> userSelfService.getMyMfaStatus("alice", "demo"))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("MFA operations delegate and user repository must be configured.");
+
+    assertThatThrownBy(() -> userSelfService.initiateMyMfaSetup("alice", "demo"))
+        .isInstanceOf(IllegalStateException.class);
+
+    assertThatThrownBy(() -> userSelfService.activateMyMfa("alice", "demo", "123456"))
+        .isInstanceOf(IllegalStateException.class);
+
+    assertThatThrownBy(() -> userSelfService.disableMyMfa("alice", "demo", "123456"))
+        .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void getMyMfaStatus_returnsStatusSuccessfully() {
+    MfaOperationsDelegate mfaDelegate = mock(MfaOperationsDelegate.class);
+    UserRepository userRepo = mock(UserRepository.class);
+    AuditEventPort auditPort = mock(AuditEventPort.class);
+
+    DefaultUserSelfService serviceWithMfa = new DefaultUserSelfService(
+        jdbcTemplate, passwordEncoder, passwordValidator, auditPort, mfaDelegate, userRepo
+    );
+
+    UUID uuid = UUID.randomUUID();
+    User user = mock(User.class);
+    when(user.getId()).thenReturn(new UserId(uuid));
+    when(userRepo.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+
+    Instant now = Instant.now();
+    when(mfaDelegate.getStatus(new UserId(uuid))).thenReturn(new MfaStatusResponse(true, now));
+
+    UserMfaStatusResponse result = serviceWithMfa.getMyMfaStatus("alice@example.com", "demo");
+    assertThat(result.enabled()).isTrue();
+    assertThat(result.enrolledAt()).isEqualTo(now);
+  }
+
+  @Test
+  void initiateMyMfaSetup_returnsSetupResponse() {
+    MfaOperationsDelegate mfaDelegate = mock(MfaOperationsDelegate.class);
+    UserRepository userRepo = mock(UserRepository.class);
+    AuditEventPort auditPort = mock(AuditEventPort.class);
+
+    DefaultUserSelfService serviceWithMfa = new DefaultUserSelfService(
+        jdbcTemplate, passwordEncoder, passwordValidator, auditPort, mfaDelegate, userRepo
+    );
+
+    UUID uuid = UUID.randomUUID();
+    User user = mock(User.class);
+    when(user.getId()).thenReturn(new UserId(uuid));
+    when(user.getEmail()).thenReturn("alice@example.com");
+    when(userRepo.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+
+    when(mfaDelegate.initiateSetup(new UserId(uuid), "alice@example.com"))
+        .thenReturn(new MfaSetupResponse("SECRETKEY", "otpauth://uri", List.of("b1", "b2")));
+
+    MfaEnrollmentSetupResponse setup = serviceWithMfa.initiateMyMfaSetup("alice@example.com", "demo");
+    assertThat(setup.secret()).isEqualTo("SECRETKEY");
+    assertThat(setup.qrCodeUri()).isEqualTo("otpauth://uri");
+    assertThat(setup.backupCodes()).containsExactly("b1", "b2");
+  }
+
+  @Test
+  void activateMyMfa_emitsAuditEvent_onSuccess() {
+    MfaOperationsDelegate mfaDelegate = mock(MfaOperationsDelegate.class);
+    UserRepository userRepo = mock(UserRepository.class);
+    AuditEventPort auditPort = mock(AuditEventPort.class);
+
+    DefaultUserSelfService serviceWithMfa = new DefaultUserSelfService(
+        jdbcTemplate, passwordEncoder, passwordValidator, auditPort, mfaDelegate, userRepo
+    );
+
+    UUID uuid = UUID.randomUUID();
+    User user = mock(User.class);
+    when(user.getId()).thenReturn(new UserId(uuid));
+    when(userRepo.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+
+    serviceWithMfa.activateMyMfa("alice@example.com", "demo", " 123456 ");
+
+    verify(mfaDelegate).activate(new UserId(uuid), "123456");
+
+    ArgumentCaptor<SecurityAuditEvent> captor = ArgumentCaptor.forClass(SecurityAuditEvent.class);
+    verify(auditPort).record(captor.capture());
+    assertThat(captor.getValue().action()).isEqualTo(SecurityAuditAction.MFA_ENROLLED);
+    assertThat(captor.getValue().principal()).isEqualTo("alice@example.com");
+  }
+
+  @Test
+  void activateMyMfa_emitsFailureAudit_onError() {
+    MfaOperationsDelegate mfaDelegate = mock(MfaOperationsDelegate.class);
+    UserRepository userRepo = mock(UserRepository.class);
+    AuditEventPort auditPort = mock(AuditEventPort.class);
+
+    DefaultUserSelfService serviceWithMfa = new DefaultUserSelfService(
+        jdbcTemplate, passwordEncoder, passwordValidator, auditPort, mfaDelegate, userRepo
+    );
+
+    UUID uuid = UUID.randomUUID();
+    User user = mock(User.class);
+    when(user.getId()).thenReturn(new UserId(uuid));
+    when(userRepo.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+
+    doThrow(new RuntimeException("Invalid TOTP code")).when(mfaDelegate).activate(new UserId(uuid), "000000");
+
+    assertThatThrownBy(() -> serviceWithMfa.activateMyMfa("alice@example.com", "demo", "000000"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Invalid TOTP code");
+
+    ArgumentCaptor<SecurityAuditEvent> captor = ArgumentCaptor.forClass(SecurityAuditEvent.class);
+    verify(auditPort).record(captor.capture());
+    assertThat(captor.getValue().action()).isEqualTo(SecurityAuditAction.MFA_VERIFY_FAILURE);
+  }
+
+  @Test
+  void disableMyMfa_emitsAuditEvent_onSuccess() {
+    MfaOperationsDelegate mfaDelegate = mock(MfaOperationsDelegate.class);
+    UserRepository userRepo = mock(UserRepository.class);
+    AuditEventPort auditPort = mock(AuditEventPort.class);
+
+    DefaultUserSelfService serviceWithMfa = new DefaultUserSelfService(
+        jdbcTemplate, passwordEncoder, passwordValidator, auditPort, mfaDelegate, userRepo
+    );
+
+    UUID uuid = UUID.randomUUID();
+    User user = mock(User.class);
+    when(user.getId()).thenReturn(new UserId(uuid));
+    when(userRepo.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+
+    serviceWithMfa.disableMyMfa("alice@example.com", "demo", " 123456 ");
+
+    verify(mfaDelegate).disable(new UserId(uuid), "123456");
+
+    ArgumentCaptor<SecurityAuditEvent> captor = ArgumentCaptor.forClass(SecurityAuditEvent.class);
+    verify(auditPort).record(captor.capture());
+    assertThat(captor.getValue().action()).isEqualTo(SecurityAuditAction.MFA_DISABLED);
+  }
+
+  @Test
+  void disableMyMfa_emitsFailureAudit_onError() {
+    MfaOperationsDelegate mfaDelegate = mock(MfaOperationsDelegate.class);
+    UserRepository userRepo = mock(UserRepository.class);
+    AuditEventPort auditPort = mock(AuditEventPort.class);
+
+    DefaultUserSelfService serviceWithMfa = new DefaultUserSelfService(
+        jdbcTemplate, passwordEncoder, passwordValidator, auditPort, mfaDelegate, userRepo
+    );
+
+    UUID uuid = UUID.randomUUID();
+    User user = mock(User.class);
+    when(user.getId()).thenReturn(new UserId(uuid));
+    when(userRepo.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+
+    doThrow(new RuntimeException("Invalid code")).when(mfaDelegate).disable(new UserId(uuid), "wrong");
+
+    assertThatThrownBy(() -> serviceWithMfa.disableMyMfa("alice@example.com", "demo", "wrong"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Invalid code");
+
+    ArgumentCaptor<SecurityAuditEvent> captor = ArgumentCaptor.forClass(SecurityAuditEvent.class);
+    verify(auditPort).record(captor.capture());
+    assertThat(captor.getValue().action()).isEqualTo(SecurityAuditAction.MFA_VERIFY_FAILURE);
   }
 }

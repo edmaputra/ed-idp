@@ -38,6 +38,10 @@ All endpoints extract the user identity from the JWT `sub` (subject) claim and e
 | `GET` | `/api/v1/users/me`<br>`/t/{tenant}/api/v1/users/me` | `SCOPE_profile` | Retrieves user profile metadata and custom attributes. |
 | `PUT` | `/api/v1/users/me`<br>`/t/{tenant}/api/v1/users/me` | `SCOPE_profile:write` **or** `SCOPE_account:manage` | Updates user profile fields (`name`, `department`, `locale`, `zoneinfo`) and replaces custom attributes. |
 | `POST` | `/api/v1/users/me/password`<br>`/t/{tenant}/api/v1/users/me/password` | `SCOPE_password:write` **or** `SCOPE_account:manage` | Validates the current password and safely updates the user's password using the configured password encoder. |
+| `GET` | `/api/v1/users/me/mfa`<br>`/t/{tenant}/api/v1/users/me/mfa` | `SCOPE_profile` **or** `SCOPE_account:manage` | Retrieves user MFA enrollment status and enrollment timestamp. |
+| `POST` | `/api/v1/users/me/mfa/setup`<br>`/t/{tenant}/api/v1/users/me/mfa/setup` | `SCOPE_mfa:write` **or** `SCOPE_account:manage` | Initiates TOTP setup returning secret key, `otpauth://` QR URI, and backup codes. |
+| `POST` | `/api/v1/users/me/mfa/activate`<br>`/t/{tenant}/api/v1/users/me/mfa/activate` | `SCOPE_mfa:write` **or** `SCOPE_account:manage` | Verifies the initial TOTP code and activates MFA for the authenticated user. |
+| `POST` | `/api/v1/users/me/mfa/disable`<br>`/t/{tenant}/api/v1/users/me/mfa/disable` | `SCOPE_mfa:write` **or** `SCOPE_account:manage` | Disables MFA for the authenticated user and clears MFA secrets. |
 
 ---
 
@@ -126,12 +130,18 @@ For development and portal integration, `ClientBootstrapService` registers `ed-i
 - **Client ID**: `ed-idp-account-portal`
 - **Authorized Grant Types**: `authorization_code`, `refresh_token`
 - **Client Authentication**: `none` (PKCE Public Client)
-- **Granted Scopes**: `openid`, `profile`, `email`, `profile:write`, `password:write`, `account:manage`
+- **Granted Scopes**: `openid`, `profile`, `email`, `profile:write`, `password:write`, `mfa:write`, `account:manage`
 - **Redirect URIs**: `http://127.0.0.1:9000/account/callback`, `http://localhost:9000/account/callback`
 
 ---
 
-## 7. Web UI Profile Menu (`ed-idp-ui`)
+## 7. MFA Self-Service Endpoints Specification
+
+For complete end-to-end details on the MFA REST APIs, setup responses, activation handshakes, and Account Portal interactive wizard, see [Feature 16 — Self-Service MFA Enrollment](16-self-service-mfa-enrollment.md).
+
+---
+
+## 8. Web UI Profile Menu (`ed-idp-ui`)
 
 In addition to the REST API, `ed-idp-ui` provides a self-service management interface accessible to logged-in users:
 

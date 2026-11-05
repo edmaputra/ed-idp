@@ -153,4 +153,19 @@ class SecurityAuditLoggingIntegrationTests extends AuthServerIntegrationTests {
       assertThat(event.principal()).isEqualTo("demo-user");
     });
   }
+
+  @Test
+  void mfaActivationFailureEmitsMfaVerifyFailureAuditEvent() {
+    try {
+      userSelfService.activateMyMfa("demo-user@example.com", "demo", "000000");
+    } catch (IllegalArgumentException ignored) {
+    }
+
+    List<SecurityAuditEvent> events = auditEventRepository.findRecent(10);
+    assertThat(events).anySatisfy(event -> {
+      assertThat(event.action()).isEqualTo(SecurityAuditAction.MFA_VERIFY_FAILURE);
+      assertThat(event.status()).isEqualTo(SecurityAuditStatus.FAILURE);
+      assertThat(event.principal()).isEqualTo("demo-user@example.com");
+    });
+  }
 }

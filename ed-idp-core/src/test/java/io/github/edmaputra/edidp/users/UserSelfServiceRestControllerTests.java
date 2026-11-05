@@ -163,4 +163,109 @@ class UserSelfServiceRestControllerTests {
         .andExpect(jsonPath("$.error").value("bad_request"))
         .andExpect(jsonPath("$.error_description").value("JWT subject claim is missing"));
   }
+
+  @Test
+  void getMyMfaStatus_returnsStatusJson() throws Exception {
+    Instant now = Instant.parse("2026-11-04T00:00:00Z");
+    UserMfaStatusResponse response = new UserMfaStatusResponse(true, now);
+    when(userSelfService.getMyMfaStatus("alice@example.com", "demo")).thenReturn(response);
+
+    mockMvc.perform(get("/api/v1/users/me/mfa").principal(principal))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.enabled").value(true))
+        .andExpect(jsonPath("$.enrolledAt").value("2026-11-04T00:00:00Z"));
+
+    verify(userSelfService).getMyMfaStatus("alice@example.com", "demo");
+  }
+
+  @Test
+  void initiateMyMfaSetup_returnsSetupJson() throws Exception {
+    MfaEnrollmentSetupResponse response = new MfaEnrollmentSetupResponse(
+        "TESTSECRET", "otpauth://totp/ed-idp:alice?secret=TESTSECRET", List.of("c1", "c2")
+    );
+    when(userSelfService.initiateMyMfaSetup("alice@example.com", "demo")).thenReturn(response);
+
+    mockMvc.perform(post("/api/v1/users/me/mfa/setup").principal(principal))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.secret").value("TESTSECRET"))
+        .andExpect(jsonPath("$.qrCodeUri").value("otpauth://totp/ed-idp:alice?secret=TESTSECRET"))
+        .andExpect(jsonPath("$.backupCodes[0]").value("c1"))
+        .andExpect(jsonPath("$.backupCodes[1]").value("c2"));
+
+    verify(userSelfService).initiateMyMfaSetup("alice@example.com", "demo");
+  }
+
+  @Test
+  void activateMyMfa_returnsNoContent_onSuccess() throws Exception {
+    String jsonBody = """
+        {
+          "code": "123456"
+        }
+        """;
+
+    mockMvc.perform(post("/api/v1/users/me/mfa/activate")
+            .principal(principal)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonBody))
+        .andExpect(status().isNoContent());
+
+    verify(userSelfService).activateMyMfa("alice@example.com", "demo", "123456");
+  }
+
+  @Test
+  void activateMyMfa_returnsBadRequest_onFailure() throws Exception {
+    doThrow(new IllegalArgumentException("Invalid verification code."))
+        .when(userSelfService).activateMyMfa("alice@example.com", "demo", "000000");
+
+    String jsonBody = """
+        {
+          "code": "000000"
+        }
+        """;
+
+    mockMvc.perform(post("/api/v1/users/me/mfa/activate")
+            .principal(principal)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonBody))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("bad_request"))
+        .andExpect(jsonPath("$.error_description").value("Invalid verification code."));
+  }
+
+  @Test
+  void disableMyMfa_returnsNoContent_onSuccess() throws Exception {
+    String jsonBody = """
+        {
+          "code": "123456"
+        }
+        """;
+
+    mockMvc.perform(post("/api/v1/users/me/mfa/disable")
+            .principal(principal)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonBody))
+        .andExpect(status().isNoContent());
+
+    verify(userSelfService).disableMyMfa("alice@example.com", "demo", "123456");
+  }
+
+  @Test
+  void disableMyMfa_returnsBadRequest_onFailure() throws Exception {
+    doThrow(new IllegalArgumentException("Invalid verification code or password."))
+        .when(userSelfService).disableMyMfa("alice@example.com", "demo", "wrongCode");
+
+    String jsonBody = """
+        {
+          "code": "wrongCode"
+        }
+        """;
+
+    mockMvc.perform(post("/api/v1/users/me/mfa/disable")
+            .principal(principal)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonBody))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("bad_request"))
+        .andExpect(jsonPath("$.error_description").value("Invalid verification code or password."));
+  }
 }
